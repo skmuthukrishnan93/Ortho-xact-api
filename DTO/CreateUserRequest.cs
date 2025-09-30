@@ -12,5 +12,7 @@
         public string? Salesperson { get; set; }
 
         public string? Customeremail { get; set; }
+        public string? DefaultRouteClerk { get; set; }
+        public List<string>? Area { get; set; }
     }
 }

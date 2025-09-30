@@ -77,11 +77,11 @@ namespace Ortho_xact_api.Controllers
             return Ok(_context.EmailSettings.FirstOrDefault());
         }
 
-           [Authorize]
+          // [Authorize]
         [HttpPost("sendMail")]
         public async Task<IActionResult> SendEmailAsync([FromBody] SalesOrderRequest request)
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value;
+            var username = "repclerk";// User.FindFirst(ClaimTypes.Name)?.Value;
             var users= _context.Users.FirstOrDefault(c => c.Username == username);
             if (users.CustomerEmail == null)
             {

@@ -56,4 +56,6 @@ public partial class DeliveryOrderDetail
     public string? PostedBy { get; set; }
 
     public DateTime? PostedDate { get; set; }
+
+    public string? RoutedClerk { get; set; }
 }

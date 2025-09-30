@@ -28,4 +28,6 @@ public partial class User
     public string? Salesperson { get; set; }
 
     public string? CustomerEmail { get; set; }
+
+    public string? DefaultRouteClerk { get; set; }
 }

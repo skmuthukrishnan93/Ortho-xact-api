@@ -15,17 +15,31 @@ public partial class OrthoxactContext : DbContext
     {
     }
 
+    public virtual DbSet<AreaMapping> AreaMappings { get; set; }
+
     public virtual DbSet<DeliveryOrderDetail> DeliveryOrderDetails { get; set; }
 
     public virtual DbSet<DocumentDetail> DocumentDetails { get; set; }
 
     public virtual DbSet<EmailSetting> EmailSettings { get; set; }
 
+    public virtual DbSet<SysproPostLog> SysproPostLogs { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AreaMapping>(entity =>
+        {
+            entity.ToTable("AreaMapping");
+
+            entity.Property(e => e.Area).HasMaxLength(100);
+            entity.Property(e => e.MappedBy).HasMaxLength(50);
+            entity.Property(e => e.MappedDate).HasColumnType("datetime");
+            entity.Property(e => e.Username).HasMaxLength(500);
+        });
+
         modelBuilder.Entity<DeliveryOrderDetail>(entity =>
         {
             entity.HasKey(e => new { e.SalesOrder, e.Line });
@@ -50,6 +64,7 @@ public partial class OrthoxactContext : DbContext
             entity.Property(e => e.RepUsageQty).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.RepVerNumber).HasMaxLength(50);
             entity.Property(e => e.RetQty).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.RoutedClerk).HasMaxLength(50);
             entity.Property(e => e.Set).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.Usage).HasColumnType("decimal(18, 2)");
@@ -76,10 +91,18 @@ public partial class OrthoxactContext : DbContext
             entity.Property(e => e.UpdatedTime).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<SysproPostLog>(entity =>
+        {
+            entity.Property(e => e.CreatedBy).HasMaxLength(50);
+            entity.Property(e => e.CreatedTime).HasColumnType("datetime");
+            entity.Property(e => e.SalesOrder).HasMaxLength(50);
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.Property(e => e.CreatedBy).HasMaxLength(50);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.DefaultRouteClerk).HasMaxLength(50);
             entity.Property(e => e.Email).HasMaxLength(100);
             entity.Property(e => e.Firstname).HasMaxLength(100);
             entity.Property(e => e.Lastname).HasMaxLength(100);

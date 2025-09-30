@@ -15,18 +15,59 @@ public partial class SysproContext : DbContext
     {
     }
 
+    public virtual DbSet<SalArea> SalAreas { get; set; }
+
     public virtual DbSet<SalSalesperson> SalSalespeople { get; set; }
 
     public virtual DbSet<SorDetail> SorDetails { get; set; }
+
+    public virtual DbSet<SorDetailBin> SorDetailBins { get; set; }
 
     public virtual DbSet<SorMaster> SorMasters { get; set; }
 
     public virtual DbSet<VwFetchSordetail> VwFetchSordetails { get; set; }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=192.168.16.70\\Syspro;Database=SysproCompanyUAT;User Id=liqdev;Password=Liqdev@2025!#;TrustServerCertificate=True;Command Timeout=300;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.UseCollation("Latin1_General_BIN");
+        modelBuilder.UseCollation("Latin1_General_100_BIN");
+
+        modelBuilder.Entity<SalArea>(entity =>
+        {
+            entity.HasKey(e => e.Area).HasName("SalAreaKey");
+
+            entity.ToTable("SalArea");
+
+            entity.Property(e => e.Area)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+            entity.Property(e => e.AreaGstCode)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .HasDefaultValue(" ")
+                .IsFixedLength();
+            entity.Property(e => e.Description)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+            entity.Property(e => e.ProvTaxFlag)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValue(" ")
+                .IsFixedLength();
+            entity.Property(e => e.TaxCode)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .HasDefaultValue(" ")
+                .IsFixedLength();
+            entity.Property(e => e.TimeStamp)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+        });
 
         modelBuilder.Entity<SalSalesperson>(entity =>
         {
@@ -104,6 +145,11 @@ public partial class SysproContext : DbContext
                 .IsUnicode(false)
                 .HasDefaultValue(" ");
             entity.Property(e => e.SalesOrderLine).HasColumnType("decimal(4, 0)");
+            entity.Property(e => e.CatLineNumber).HasColumnType("decimal(4, 0)");
+            entity.Property(e => e.Catalogue)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
             entity.Property(e => e.CreditReason)
                 .HasMaxLength(6)
                 .IsUnicode(false)
@@ -733,6 +779,43 @@ public partial class SysproContext : DbContext
                 .HasConstraintName("Syspro_FK_SorDetail_SorMaster");
         });
 
+        modelBuilder.Entity<SorDetailBin>(entity =>
+        {
+            entity.HasKey(e => new { e.SalesOrder, e.SalesOrderLine, e.Lot, e.Bin }).HasName("SorDetailBinKey");
+
+            entity.ToTable("SorDetailBin");
+
+            entity.Property(e => e.SalesOrder)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+            entity.Property(e => e.SalesOrderLine).HasColumnType("decimal(4, 0)");
+            entity.Property(e => e.Lot)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+            entity.Property(e => e.Bin)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+            entity.Property(e => e.QtyReserved).HasColumnType("decimal(18, 6)");
+            entity.Property(e => e.QtyThisSession).HasColumnType("decimal(18, 6)");
+            entity.Property(e => e.StockQtyToShip).HasColumnType("decimal(18, 6)");
+            entity.Property(e => e.TimeStamp)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+
+            entity.HasOne(d => d.SalesOrderNavigation).WithMany(p => p.SorDetailBins)
+                .HasForeignKey(d => d.SalesOrder)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("Syspro_FK_SorDetailBin_SorMaster");
+
+            entity.HasOne(d => d.SorDetail).WithMany(p => p.SorDetailBins)
+                .HasForeignKey(d => new { d.SalesOrder, d.SalesOrderLine })
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("Syspro_FK_SorDetailBin_SorDetail");
+        });
+
         modelBuilder.Entity<SorMaster>(entity =>
         {
             entity.HasKey(e => e.SalesOrder).HasName("SorMasterKey");
@@ -866,6 +949,11 @@ public partial class SysproContext : DbContext
             entity.Property(e => e.DiscPct1).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.DiscPct2).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.DiscPct3).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.DispatchWholeSo)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValue(" ")
+                .IsFixedLength();
             entity.Property(e => e.DispatchesMade)
                 .HasMaxLength(1)
                 .IsUnicode(false)
@@ -895,6 +983,11 @@ public partial class SysproContext : DbContext
                 .IsUnicode(false)
                 .HasDefaultValue(" ");
             entity.Property(e => e.EntInvoiceDate).HasColumnType("datetime");
+            entity.Property(e => e.EntityDimensions)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasDefaultValue(" ")
+                .IsFixedLength();
             entity.Property(e => e.EntrySystemDate).HasColumnType("datetime");
             entity.Property(e => e.ExchangeRate).HasColumnType("decimal(12, 6)");
             entity.Property(e => e.ExtendedTaxCode)
@@ -978,6 +1071,10 @@ public partial class SysproContext : DbContext
                 .IsFixedLength();
             entity.Property(e => e.LastDelNote).HasColumnType("datetime");
             entity.Property(e => e.LastInvoice)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+            entity.Property(e => e.LastOpInvPrt)
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasDefaultValue(" ");
@@ -1219,6 +1316,11 @@ public partial class SysproContext : DbContext
                 .HasDefaultValue(" ")
                 .IsFixedLength();
 
+            entity.HasOne(d => d.AreaNavigation).WithMany(p => p.SorMasters)
+                .HasForeignKey(d => d.Area)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("Syspro_FK_SorMaster_SalArea");
+
             entity.HasOne(d => d.SalSalesperson).WithMany(p => p.SorMasters)
                 .HasForeignKey(d => new { d.Branch, d.Salesperson })
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1231,6 +1333,10 @@ public partial class SysproContext : DbContext
                 .HasNoKey()
                 .ToView("vw_FetchSORDetails");
 
+            entity.Property(e => e.Area)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.ClerkDate).HasColumnType("datetime");
             entity.Property(e => e.Customer)
                 .HasMaxLength(15)
                 .IsUnicode(false);
@@ -1260,10 +1366,12 @@ public partial class SysproContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("MWarehouse");
+            entity.Property(e => e.OrderDate).HasColumnType("datetime");
             entity.Property(e => e.OrderStatus)
                 .HasMaxLength(1)
                 .IsUnicode(false)
                 .IsFixedLength();
+            entity.Property(e => e.RepEntertedDate).HasColumnType("datetime");
             entity.Property(e => e.RepUsageQty).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.RetQty).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.SalesOrder)
@@ -1281,10 +1389,10 @@ public partial class SysproContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
-                .UseCollation("Latin1_General_CI_AS");
-            entity.Property(e => e.Usage).HasColumnType("decimal(23, 6)");
+                .UseCollation("Latin1_General_BIN");
+            entity.Property(e => e.Usage).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Variance)
-                .HasColumnType("decimal(19, 2)")
+                .HasColumnType("decimal(18, 2)")
                 .HasColumnName("variance");
         });
 

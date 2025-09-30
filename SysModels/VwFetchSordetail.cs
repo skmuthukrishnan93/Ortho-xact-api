@@ -42,4 +42,12 @@ public partial class VwFetchSordetail
     public string CustomerName { get; set; } = null!;
 
     public string Salesperson { get; set; } = null!;
+
+    public string Area { get; set; } = null!;
+
+    public DateTime? RepEntertedDate { get; set; }
+
+    public DateTime? ClerkDate { get; set; }
+
+    public DateTime? OrderDate { get; set; }
 }

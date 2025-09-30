@@ -17,7 +17,8 @@
                 MaxReceivedMessageSize = 10485760
             };
 
-            var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/utilities.asmx");
+            var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/utilities.asmx");
+            //var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/utilities.asmx");
 
             var client = new utilitiesclassSoapClient(binding, endpoint);
 
@@ -33,14 +34,39 @@
 
             return resultStream;
         }
+        public async Task<bool> LogoutAsync(string sessionToken)
+        {
+            var binding = new BasicHttpBinding(BasicHttpSecurityMode.None)
+            {
+                MaxReceivedMessageSize = 10485760
+            };
+            //var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/utilities.asmx");
+            var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/utilities.asmx");
+
+            var client = new utilitiesclassSoapClient(binding, endpoint);
+
+            try
+            {
+                await client.LogoffAsync(sessionToken);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Handle error (e.g., log it)
+                Console.WriteLine($"Logout failed: {ex.Message}");
+                return false;
+            }
+        }
+
         public async Task<PostResponse> Transaction(string sessionId, string businessObject, string parameters, string xmlIn)
         {
             var binding = new BasicHttpBinding(BasicHttpSecurityMode.None)
             {
                 MaxReceivedMessageSize = 10485760
             };
+           // var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/Transaction.asmx");
 
-            var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/Transaction.asmx");
+            var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/Transaction.asmx");
 
             var client = new transactionclassSoapClient(binding, endpoint);
 

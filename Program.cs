@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 var builder = WebApplication.CreateBuilder(args);
 
 // Run as a Windows Service
-builder.Host.UseWindowsService();
+//builder.Host.UseWindowsService();
 
 //// Setup logging to file (optional but useful for services)
 //var logPath = Path.Combine(AppContext.BaseDirectory, "logs");
@@ -69,7 +69,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 //builder.WebHost.UseUrls("http://192.168.23.157:5000");
-builder.WebHost.UseUrls("http://192.168.16.70:5000");
+//builder.WebHost.UseUrls("http://192.168.16.70:5000");
 //builder.WebHost.UseUrls("http://41.87.206.94:5000");
 
 var app = builder.Build();

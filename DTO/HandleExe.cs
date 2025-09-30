@@ -20,7 +20,8 @@ namespace Ortho_xact_api.DTO
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = exePath,
-                    Arguments = SalesOrder+","+docType.ToString(), // Optional: pass arguments here
+                    Arguments = $"{SalesOrder},{docType}",
+                    WorkingDirectory = Path.GetDirectoryName(exePath), // important!
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
