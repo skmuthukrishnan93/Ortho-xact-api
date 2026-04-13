@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Ortho_xact_api.DTO;
 using Ortho_xact_api.Models;
@@ -105,9 +106,22 @@ namespace Ortho_xact_api.Controllers
                 CreatedDate = DateTime.Now,
                 Salesperson = request.Salesperson,
                 CustomerEmail=request.Customeremail,
+                DefaultRouteClerk = request.DefaultRouteClerk,
             };
 
             _context.Users.Add(newUser);
+            foreach (var area in request.Area ?? new List<string>())
+            {
+                var userArea = new AreaMapping
+                {
+                    Username = request.Username,
+                    Area = area,
+                    MappedBy = username,
+                    MappedDate = DateTime.Now
+                };
+                _context.AreaMappings.Add(userArea);
+            }
+            
             _context.SaveChanges();
 
             return Ok();
@@ -132,12 +146,57 @@ namespace Ortho_xact_api.Controllers
             existingUser.Roles= request.Roles;
             existingUser.Email= request.Email;
             existingUser.CustomerEmail= request.Customeremail;
-
-            
+            existingUser.DefaultRouteClerk= request.DefaultRouteClerk;
             _context.SaveChanges();
+            var existingAreaMappings = _context.AreaMappings.Where(a => a.Username == request.Username).ToList();
+            // Remove existing area mappings
+            foreach (var areaMapping in existingAreaMappings)
+            {
+                _context.AreaMappings.Remove(areaMapping);
+            }
+            _context.SaveChanges();
+            foreach (var area in request.Area ?? new List<string>())
+            {
+                var userArea = new AreaMapping
+                {
+                    Username = request.Username,
+                    Area = area,
+                    MappedBy = username,
+                    MappedDate = DateTime.Now
+                };
+                _context.AreaMappings.Add(userArea);
+            }
+            _context.SaveChanges(); 
+
 
             return Ok();
         }
+        [HttpGet("GetAllUsers")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var usersWithAreas = await _context.Users
+                .OrderBy(u => u.Firstname)
+                .Select(u => new
+                {
+                  FirstName=  u.Firstname,
+                    LastName = u.Lastname,
+                    u.Username,
+                    u.Email,
+                    u.Roles,
+                    u.Salesperson,
+                    u.CustomerEmail,
+                    u.DefaultRouteClerk,
+                    // Add other fields if needed
+                    Areas = _context.AreaMappings
+                        .Where(a => a.Username == u.Username)
+                        .Select(a => a.Area)
+                        .ToList()
+                })
+                .ToListAsync();
+
+            return Ok(usersWithAreas);
+        }
+
         [Authorize]
         [HttpPost("sendMail")]
         public async Task<IActionResult> SendEmailAsync([FromBody] SalesOrderRequest request)

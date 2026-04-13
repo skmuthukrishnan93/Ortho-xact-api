@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace Ortho_xact_api.SysModels;
 
-public partial class VwFetchSordetail
+public partial class vw_FetchSORDetails
 {
-    public string MbomFlag { get; set; } = null!;
+    public string MBomFlag { get; set; } = null!;
 
     public string OrderStatus { get; set; } = null!;
 
@@ -13,7 +13,7 @@ public partial class VwFetchSordetail
 
     public decimal? Usage { get; set; }
 
-    public decimal? Variance { get; set; }
+    public decimal? variance { get; set; }
 
     public string? Status { get; set; }
 
@@ -23,15 +23,15 @@ public partial class VwFetchSordetail
 
     public decimal SalesOrderLine { get; set; }
 
-    public string MstockCode { get; set; } = null!;
+    public string MStockCode { get; set; } = null!;
 
-    public string MstockDes { get; set; } = null!;
+    public string MStockDes { get; set; } = null!;
 
-    public string Mwarehouse { get; set; } = null!;
+    public string MWarehouse { get; set; } = null!;
 
-    public decimal MorderQty { get; set; }
+    public decimal MOrderQty { get; set; }
 
-    public decimal MshipQty { get; set; }
+    public decimal MShipQty { get; set; }
 
     public string SetsCode { get; set; } = null!;
 

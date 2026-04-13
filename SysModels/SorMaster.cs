@@ -261,7 +261,17 @@ public partial class SorMaster
 
     public string PriceGroupLevel { get; set; } = null!;
 
+    public string LastOpInvPrt { get; set; } = null!;
+
+    public string DispatchWholeSo { get; set; } = null!;
+
+    public string EntityDimensions { get; set; } = null!;
+
+    public virtual SalArea AreaNavigation { get; set; } = null!;
+
     public virtual SalSalesperson SalSalesperson { get; set; } = null!;
+
+    public virtual ICollection<SorDetailBin> SorDetailBins { get; set; } = new List<SorDetailBin>();
 
     public virtual ICollection<SorDetail> SorDetails { get; set; } = new List<SorDetail>();
 }

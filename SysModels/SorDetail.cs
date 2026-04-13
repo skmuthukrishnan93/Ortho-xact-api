@@ -289,5 +289,11 @@ public partial class SorDetail
 
     public decimal PriceGroupRule { get; set; }
 
+    public string Catalogue { get; set; } = null!;
+
+    public decimal CatLineNumber { get; set; }
+
     public virtual SorMaster SalesOrderNavigation { get; set; } = null!;
+
+    public virtual ICollection<SorDetailBin> SorDetailBins { get; set; } = new List<SorDetailBin>();
 }

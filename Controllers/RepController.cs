@@ -19,6 +19,7 @@ namespace Ortho_xact_api.Controllers
     //[Authorize]
     [ApiController]
     [Route("[controller]")]
+
     public class RepController : ControllerBase
     {
 
@@ -61,6 +62,7 @@ namespace Ortho_xact_api.Controllers
 
                 string status = allHaveQty ? "Completed&ReadyForValidation" :
                                 anyHaveQty ? "StoresInProgress" : null;
+                status = "Completed&ReadyForValidation";
 
                 foreach (var dto in group)
                 {
@@ -69,11 +71,19 @@ namespace Ortho_xact_api.Controllers
 
                     if (existing != null)
                     {
+                        if(dto.RetQty==null)
+                        {
+                            dto.RetQty = dto.MshipQty;
+                        }
+                        if(existing.RepUsageQty==null)
+                        {
+                            existing.RepUsageQty = 0;
+                        }
                         // Update existing
                        existing.RetQty= dto.RetQty;
                         existing.Status = status;
-                        existing.Usage = existing.MshipQty - dto.RetQty ?? 0;
-                        existing.Variance = existing.RepUsageQty - existing.Usage ?? 0;
+                        existing.Usage = existing.MshipQty - dto.RetQty;
+                        existing.Variance = existing.RepUsageQty - existing.Usage;
                         existing.ClerkDate =DateTime.Now;
                         existing.ClerkName = username;
                         existing.ClerkVerNumber = finalNumber;
@@ -108,14 +118,17 @@ namespace Ortho_xact_api.Controllers
             foreach (var group in groupedBySalesOrder)
             {
                 var group1 = group.Where(c => c.MbomFlag != "P");
-                bool allHaveQty = group1.All(x => x.RepUsageQty.HasValue);
-                bool anyHaveQty = group1.Any(x => x.RepUsageQty.HasValue);
-                if (!allHaveQty)
-                {
-                    return BadRequest("Validation Failed");
-                }
+               // bool allHaveQty = group1.All(x => x.RepUsageQty.HasValue);
+                bool anyHaveQty = group1.Any(x => x.Variance!=0);
+                //if (!allHaveQty)
+                //{
+                //    return BadRequest("Validation Failed");
+                //}
 
                 string status = "ReadyToPostSyspro";
+                if(anyHaveQty)
+                {                     status = "Send Email To Customer Service";
+                }
 
                 foreach (var dto in group)
                 {
@@ -124,7 +137,10 @@ namespace Ortho_xact_api.Controllers
 
                     if (existing != null)
                     {
-                        
+                        if(existing.RepUsageQty==null )
+                        {
+                            existing.RepUsageQty = 0;
+                        }
                         existing.Status = status;
                         
                     }
@@ -141,6 +157,7 @@ namespace Ortho_xact_api.Controllers
         [HttpPost("posttosyspro")]
         public async Task<IActionResult> PostToSyspro([FromBody] DeliveryOrderDetailPayload payload)
         {
+            try { 
             var items = payload.Data;
             if (items == null || !items.Any())
                 return BadRequest("No data received.");
@@ -152,6 +169,8 @@ namespace Ortho_xact_api.Controllers
 
             var existingMaster = new SorMaster();
             var existingOrderDetails = new List<SorDetail>();
+            var parentOrderDetails = new List<SorDetail>();
+            var sorDetailBin = new List<SorDetailBin>();
 
             foreach (var group in groupedBySalesOrder)
             {
@@ -165,16 +184,27 @@ namespace Ortho_xact_api.Controllers
                 var salesorder = group.FirstOrDefault()?.SalesOrder;
                  existingMaster = await _sysContext.SorMasters.Where(c => c.SalesOrder == salesorder ).FirstOrDefaultAsync();
                  existingOrderDetails = await _sysContext.SorDetails.Where(c => c.SalesOrder == salesorder && c.MbomFlag != "P").ToListAsync();
+                parentOrderDetails = await _sysContext.SorDetails.Where(c => c.SalesOrder == salesorder && c.MbomFlag == "P").ToListAsync();
+                sorDetailBin = await _sysContext.SorDetailBins.Where(c => c.SalesOrder == salesorder).ToListAsync();
                 string status = "PostedToSyspro";
                 existingMaster.OrderStatus = "1";
                 foreach (var dto in group)
                 {
                     var dtls = existingOrderDetails.FirstOrDefault(x => x.SalesOrder == dto.SalesOrder && x.SalesOrderLine == dto.SalesOrderLine && x.MbomFlag !="P");
+                   var  dtlsBin = sorDetailBin.FirstOrDefault(x => x.SalesOrderLine == dto.SalesOrderLine);
                     if (dtls != null)
                     {
                         dtls.MorderQty= (decimal)dto.Usage;
                         dtls.MshipQty = (decimal)dto.Usage;
-                      
+                        dtls.MstockQtyToShp = (decimal)dto.Usage;
+                        dtls.MqtyPer= (decimal)dto.Usage;
+                        dtls.MstockUnitMass= (decimal)dto.Usage;
+                        if (dto.Usage==0)
+                        {
+                            dtls.NsrvMinQuantity = dtls.MorderQty;
+                            dtls.SalesOrderDetStat = "C";
+
+                        }
                        
                     }
                     var existing = await _context.DeliveryOrderDetails
@@ -187,13 +217,19 @@ namespace Ortho_xact_api.Controllers
                         existing.PostedBy = username;
                         existing.PostedDate = DateTime.Now;
                     }
+                    if (dtlsBin != null)
+                    {
+                        dtlsBin.StockQtyToShip = (decimal)dto.Usage;
+                        dtlsBin.QtyReserved= (decimal)dto.Usage;
+                       // dtlsBin.Bin = parentOrderDetails.FirstOrDefault()?.MstockCode ?? string.Empty;
+                    }
 
                 }
             }
             await _sysContext.SaveChangesAsync();
             await _context.SaveChangesAsync();
             var syspro = new SysproWebService();
-            var responseXml = await syspro.LoginAsync("CONS29", "", "OXZ");
+            var responseXml = await syspro.LoginAsync("CONS29", "", "OXO");
             var sessionId = responseXml.Body.LogonResult;
             //return Ok(new { response = responseXml.Body.LogonResult });
             // var sessionId = await LoginAsync("EDU", "ADMIN", "1234");
@@ -202,9 +238,20 @@ namespace Ortho_xact_api.Controllers
             string xmlIn = GenerateSortoiXml(existingMaster, existingOrderDetails);
             string parameters = GenerateSortoiParametersXml();
             var response = await syspro.Transaction(sessionId, "SORTSU", parameters, xmlIn);
-       
-            return Ok(new { message = "Saved successfully", count = 0 });
+            var response1 = await syspro.LogoutAsync(sessionId);
 
+            return Ok(new { message = "Saved successfully", count = 0 });
+        }
+            catch (Exception ex)
+            {
+                // 🔥 TEMP: return full error
+                return StatusCode(500, new
+                {
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace,
+                    inner = ex.InnerException?.Message
+    });
+            }
         }
 
         [HttpPost("testposttosyspro")]
@@ -251,6 +298,59 @@ namespace Ortho_xact_api.Controllers
   <ValidateOnly>{(validateOnly ? "Y" : "N")}</ValidateOnly>
   <IgnoreWarnings>{(ignoreWarnings ? "Y" : "N")}</IgnoreWarnings>
 </Parameters></PostChangeSalesOrderKitComp>".Trim();
+        }
+        private string GenerateSortRKParametersXml(bool validateOnly = false, bool ignoreWarnings = false)
+        {
+            //Declaration
+            StringBuilder Document = new StringBuilder();
+
+            //Building Document content
+            Document.Append("<?xml version=\"1.0\" encoding=\"Windows-1252\"?>");
+            Document.Append("<!-- Copyright 1994-2014 SYSPRO Ltd.-->");
+            Document.Append("<!--");
+            Document.Append("This is an example XML instance to demonstrate");
+            Document.Append("use of the Sales Order Release Kit Quantities Business Object");
+            Document.Append("-->");
+            Document.Append("<PostSorKitRelease xmlns:xsd=\"http://www.w3.org/2001/XMLSchema-instance\" xsd:noNamespaceSchemaLocation=\"SORTRK.XSD\">");
+            Document.Append("<Parameters>");
+            Document.Append("<IgnoreWarnings>N</IgnoreWarnings>");
+            Document.Append("<ApplyIfEntireDocumentValid>N</ApplyIfEntireDocumentValid>");
+            Document.Append("<ValidateOnly>N</ValidateOnly>");
+            Document.Append("<IgnoreAutoDepletion>N</IgnoreAutoDepletion>");
+            Document.Append("</Parameters>");
+            Document.Append("</PostSorKitRelease>");
+            
+         return Document.ToString();
+        }
+        private string GenerateSortRKXml(SorMaster master, List<SorDetail> lines, List<SorDetail> parentlines)
+        {
+            //Declaration
+            StringBuilder Document = new StringBuilder();
+
+            //Building Document content
+            Document.Append("<?xml version=\"1.0\" encoding=\"Windows-1252\"?>");
+            Document.Append("<PostSorKitRelease xmlns:xsd=\"http://www.w3.org/2001/XMLSchema-instance\"");
+            Document.Append("xsd:noNamespaceSchemaLocation=\"SORTRK.XSD\">");
+            Document.Append("<Parameters>");
+            Document.Append("<IgnoreWarnings>N</IgnoreWarnings>");
+            Document.Append("<ApplyIfEntireDocumentValid>N</ApplyIfEntireDocumentValid>");
+            Document.Append("<ValidateOnly>N</ValidateOnly>");
+            Document.Append("<IgnoreAutoDepletion>N</IgnoreAutoDepletion>");
+            Document.Append("</Parameters>");
+            foreach (var line in lines)
+            {
+                Document.Append("<Item>");
+                Document.Append($"<SalesOrder>{master.SalesOrder}</SalesOrder>");
+                Document.Append($"<SalesOrderLine>{line.SalesOrderLine}</SalesOrderLine>");
+                Document.Append($"<ReleaseQuantity>{line.MorderQty}</ReleaseQuantity>");
+                Document.Append($"<Warehouse>{line.Mwarehouse}</Warehouse>");
+                Document.Append($"<StockCode>{line.MstockCode}</StockCode>");
+                Document.Append($"<Bin>{parentlines[0].MstockCode}</Bin>");
+                Document.Append("</Item>");
+            }
+           
+            Document.Append("</PostSorKitRelease>");
+            return Document.ToString();
         }
         private string GenerateSortoiXml(SorMaster master, List<SorDetail> lines)
         {
@@ -357,7 +457,10 @@ namespace Ortho_xact_api.Controllers
             if (items == null || !items.Any())
                 return BadRequest("No data received.");
             var username = User.FindFirst(ClaimTypes.Name)?.Value;
-            
+            var routedClerk= _context.Users.FirstAsync(x => x.Username == username).Result.DefaultRouteClerk;
+            if (routedClerk == null)
+                return BadRequest("No default route clerk set for the user.Please reach out admin team.");
+
             // Group by SalesOrder
             var groupedBySalesOrder = items
                 .GroupBy(dto => dto.SalesOrder);
@@ -376,6 +479,7 @@ namespace Ortho_xact_api.Controllers
 
                 string status = allHaveQty ? "RepCompleted" :
                                 anyHaveQty ? "Inprogress" : null;
+                status = "RepCompleted";
 
                 foreach (var dto in group)
                 {
@@ -395,9 +499,10 @@ namespace Ortho_xact_api.Controllers
                         existing.MstockDes = dto.MstockDes;
                         existing.MorderQty = dto.MorderQty;
                         existing.MshipQty = dto.MshipQty;
-                        existing.RepUsageQty = dto.RepUsageQty;
+                        existing.RepUsageQty = dto.RepUsageQty??0;
                         existing.RepEntertedDate = DateTime.Now;
                         existing.RepName = username;
+                        existing.RoutedClerk = routedClerk;
                     }
                     else
                     {
@@ -421,6 +526,7 @@ namespace Ortho_xact_api.Controllers
                                 RepEntertedDate = DateTime.Now,
                                 RepName = username,
                                 RepVerNumber= finalNumber,
+                                RoutedClerk = routedClerk,
                             };
 
                             _context.DeliveryOrderDetails.Add(newEntity);
@@ -479,6 +585,121 @@ namespace Ortho_xact_api.Controllers
             return Ok(new { message = "Saved successfully", count = 0 });
 
         }
+
+        [HttpPost("AdminUpdateOrderStatus")]
+        public async Task<IActionResult> AdminUpdateOrderStatus([FromBody] UpdateOrderStatusRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.SalesOrderNumber))
+                    return BadRequest("Sales Order Number is required.");
+
+                if (string.IsNullOrEmpty(request.CorrectionType))
+                    return BadRequest("Correction Type is required.");
+
+                var username = User.FindFirst(ClaimTypes.Name)?.Value;
+
+                // Format the sales order number to 15 digits with leading zeros
+                var salesOrderNumber = request.SalesOrderNumber;
+                if (long.TryParse(salesOrderNumber, out long numericOrder))
+                {
+                    salesOrderNumber = numericOrder.ToString("D15");
+                }
+
+                // Get the existing order details
+                var existingOrders = await _context.DeliveryOrderDetails
+                    .Where(x => x.SalesOrder == salesOrderNumber)
+                    .ToListAsync();
+
+                if (!existingOrders.Any())
+                {
+                    
+
+                }
+                else
+                {
+                    // Update existing orders
+                    string newStatus = request.CorrectionType == "repclerk" ? "StoresInProgress" : "Inprogress";
+
+
+                    foreach (var order in existingOrders)
+                    {
+                        order.Status = newStatus;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                string routeType = request.CorrectionType == "repclerk" ? "Rep Clerk" : "Rep";
+                return Ok(new
+                {
+                    message = $"Order {request.SalesOrderNumber} has been updated",
+                    salesOrder = request.SalesOrderNumber,
+                    correctionType = request.CorrectionType,
+                    routedTo = ""
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace,
+                    inner = ex.InnerException?.Message
+                });
+            }
+        }
+
+        [HttpGet("GetOrderStatusHistory")]
+        public async Task<IActionResult> GetOrderStatusHistory([FromQuery] string salesOrderNumber)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(salesOrderNumber))
+                    return BadRequest("Sales Order Number is required.");
+
+                // Format the sales order number
+                if (long.TryParse(salesOrderNumber, out long numericOrder))
+                {
+                    salesOrderNumber = numericOrder.ToString("D15");
+                }
+
+                var orders = await _context.DeliveryOrderDetails
+                    .Where(x => x.SalesOrder == salesOrderNumber)
+                    .OrderByDescending(x => x.RepEntertedDate)
+                    .ThenByDescending(x => x.ClerkDate)
+                    .ToListAsync();
+
+                if (!orders.Any())
+                    return NotFound("No status history found for this order.");
+
+                var history = orders.Select(o => new
+                {
+                    o.SalesOrder,
+                    o.Line,
+                    o.Status,
+                    o.RepName,
+                    o.RepEntertedDate,
+                    o.ClerkName,
+                    o.ClerkDate,
+                    o.AdminVerNumber,
+                    o.RoutedClerk,
+                    o.PostedBy,
+                    o.PostedDate
+                });
+
+                return Ok(history);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace,
+                    inner = ex.InnerException?.Message
+                });
+            }
+        }
         [HttpPost("revieworderdetails")]
         public async Task<IActionResult> GetAdminSalesOrders([FromBody] SalesOrderRequest request)
         {
@@ -488,9 +709,17 @@ namespace Ortho_xact_api.Controllers
             var order = await _sysContext.VwFetchSordetails.Where(o => o.OrderStatus == "4")
                 .ToListAsync();
             if (!String.IsNullOrEmpty(request?.SalesOrderNumber))
+            {
+                if (long.TryParse(request.SalesOrderNumber, out long numericOrder))
+                {
+                    // Format to 15 digits with leading zeros
+                    request.SalesOrderNumber = numericOrder.ToString("D15");
+                }
                 order = order
                     .Where(o => o.SalesOrder.Contains(request.SalesOrderNumber))
                     .ToList();
+
+            }
 
             if (order?.Count == 0)
                 return NotFound("Sales order not found.");
@@ -507,26 +736,29 @@ namespace Ortho_xact_api.Controllers
 
             var groupedOrders = await _sysContext.VwFetchSordetails
     .Where(o => o.OrderStatus == "4")
-    .GroupBy(o => new { o.SalesOrder, o.Customer, o.Status,o.Salesperson })
+    .GroupBy(o => new { o.SalesOrder, o.Customer, o.Status,o.Salesperson ,o.Area})
     .Select(g => new
     {
         SalesOrder = g.Key.SalesOrder.TrimStart('0'),
         Customer = g.Key.Customer,
         Status = g.Key.Status,
         SalesPerson = g.Key.Salesperson,
+        Area = g.Key.Area,
     })
     .ToListAsync();
 
             var roles = User.FindFirst(ClaimTypes.Role)?.Value;
             var salesPerson = User.FindFirst(ClaimTypes.GivenName)?.Value;
+            var username = User.FindFirst(ClaimTypes.Name)?.Value;
             if (roles =="rep")
             {
-                groupedOrders = groupedOrders.Where(o => o.SalesPerson==salesPerson &&  o.Status == null || o.Status == "Inprogress").ToList();
+                var areas = await _context.AreaMappings.Where(a => a.Username == username).Select(a => a.Area).ToListAsync();
+                groupedOrders = groupedOrders.Where(o =>  areas.Contains(o.Area) &&  o.Status == null || o.Status == "Inprogress").ToList();
                 
             }
             if (roles == "repclerk")
             {
-                groupedOrders = groupedOrders.Where(o => o.Status == "RepCompleted" || o.Status == "StoresInProgress" || o.Status == "Completed&ReadyForValidation" || o.Status == "ReadyToPostSyspro").ToList();
+                groupedOrders = groupedOrders.Where(o => o.Status == "RepCompleted" || o.Status == "StoresInProgress" || o.Status == "Completed&ReadyForValidation" || o.Status =="Send Email To Customer Service" || o.Status == "ReadyToPostSyspro").ToList();
 
             }
             if (groupedOrders?.Count == 0)
@@ -547,6 +779,33 @@ namespace Ortho_xact_api.Controllers
 
             return Ok(groupedOrders);
         }
+        [AllowAnonymous]
+        [HttpGet("GetSalesArea")]
+        public async Task<IActionResult> GetSalesArea()
+        {
+
+
+
+            var groupedOrders = await _sysContext.SalAreas
+    .ToListAsync();
+
+
+
+            return Ok(groupedOrders);
+        }
+        [HttpGet("GetClerks")]
+        public async Task<IActionResult> GetClerks()
+        {
+
+
+
+            var groupedOrders = await _context.Users.Where(u => u.Roles == "repclerk").OrderBy(x => x.Username)
+    .ToListAsync();
+
+
+
+            return Ok(groupedOrders);
+        }
         [HttpGet("GetAllUsers")]
         public async Task<IActionResult> GetAllUsers()
         {
@@ -564,10 +823,14 @@ namespace Ortho_xact_api.Controllers
         [HttpPost("clerkorderdetails")]
         public async Task<IActionResult> GetRepClerkSalesOrders([FromBody] SalesOrderRequest request)
         {
+            if (long.TryParse(request.SalesOrderNumber, out long numericOrder))
+            {
+                // Format to 15 digits with leading zeros
+                request.SalesOrderNumber = numericOrder.ToString("D15");
+            }
 
 
-
-            var order = await _sysContext.VwFetchSordetails.Where(o => o.OrderStatus == "4" && o.Status == "RepCompleted" || o.Status == "StoresInProgress" || o.Status == "Completed&ReadyForValidation" || o.Status == "ReadyToPostSyspro")
+            var order = await _sysContext.VwFetchSordetails.Where(o => o.OrderStatus == "4" && o.Status == "RepCompleted" || o.Status == "Send Email To Customer Service" || o.Status == "StoresInProgress" || o.Status == "Completed&ReadyForValidation" || o.Status == "ReadyToPostSyspro")
                 .ToListAsync();
             if (!String.IsNullOrEmpty(request?.SalesOrderNumber))
                 order = order
@@ -582,31 +845,48 @@ namespace Ortho_xact_api.Controllers
         [HttpPost("saleorderdetails")]
         public async Task<IActionResult> GetRepSalesOrders([FromBody] SalesOrderRequest request)
         {
-
-
-            var username = User.FindFirst(ClaimTypes.Name)?.Value;
-            var order = await _sysContext.VwFetchSordetails.Where(o => o.OrderStatus == "4" && (o.Status == null || o.Status== "Inprogress"))
-                .ToListAsync();
-            if(!String.IsNullOrEmpty(request?.SalesOrderNumber ))
-            order = order
-                .Where(o => o.SalesOrder .Contains( request.SalesOrderNumber))
-                .ToList();
-            var roles = User.FindFirst(ClaimTypes.Role)?.Value;
-            var salesPerson = User.FindFirst(ClaimTypes.GivenName)?.Value;
-            if (roles == "rep")
+            try
             {
-                order = order.Where(o => o.Salesperson == salesPerson && o.Status == null || o.Status == "Inprogress").ToList();
 
+                if (long.TryParse(request.SalesOrderNumber, out long numericOrder))
+                {
+                    // Format to 15 digits with leading zeros
+                    request.SalesOrderNumber = numericOrder.ToString("D15");
+                }
+                var username = User.FindFirst(ClaimTypes.Name)?.Value;
+                var order = await _sysContext.VwFetchSordetails.Where(o => o.OrderStatus == "4")
+                    .ToListAsync();
+                if (!String.IsNullOrEmpty(request?.SalesOrderNumber))
+                    order = order
+                        .Where(o => o.SalesOrder.Contains(request.SalesOrderNumber))
+                        .ToList();
+                var roles = User.FindFirst(ClaimTypes.Role)?.Value;
+                var salesPerson = User.FindFirst(ClaimTypes.GivenName)?.Value;
+                if (roles == "rep")
+                {
+                    order = order.Where(o => o.Status == null || o.Status == "Inprogress").ToList();
+
+                }
+                if (roles == "repclerk")
+                {
+                    order = order.Where(o => o.Status == "RepCompleted" || o.Status == "StoresInProgress" || o.Status == "Completed&ReadyForValidation" || o.Status == "Send Email To Customer Service" || o.Status == "ReadyToPostSyspro").ToList();
+
+                }
+                if (order?.Count == 0)
+                    return NotFound("Sales order not found.");
+                return Ok(order);
             }
-            if (roles == "repclerk")
+            catch (Exception ex)
             {
-                order = order.Where(o => o.Status == "RepCompleted" || o.Status == "StoresInProgress" || o.Status == "Completed&ReadyForValidation" || o.Status == "ReadyToPostSyspro").ToList();
-
+                // 🔥 TEMP: return full error
+                return StatusCode(500, new
+                {
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace,
+                    inner = ex.InnerException?.Message
+                });
             }
-            if (order?.Count == 0)
-                return NotFound("Sales order not found.");
-
-            return Ok(order);
+           
         }
         [HttpPost("GenerateReport")]
         public async Task<IActionResult> GenerateReport([FromBody] SalesOrderRequest request)
@@ -619,7 +899,7 @@ namespace Ortho_xact_api.Controllers
             }
             if (roles != null && roles == "admin")
                 doctype = 3;
-            HandleExe.RunMyExe(request.SalesOrderNumber,doctype);
+           HandleExe.RunMyExe(request.SalesOrderNumber,doctype);
             
 
             return Ok();
