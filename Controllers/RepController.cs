@@ -699,6 +699,40 @@ namespace Ortho_xact_api.Controllers
                     inner = ex.InnerException?.Message
                 });
             }
+        
+        }
+
+        [HttpPost("reroute")]
+        public async Task<IActionResult> UpdateReRoute([FromBody] RerouteRequestDto payload)
+        {
+            if (long.TryParse(payload.DeliveryNote, out long numericOrder))
+            {
+                // Format to 15 digits with leading zeros
+                payload.DeliveryNote = numericOrder.ToString("D15");
+            }
+
+            var existing = await _context.DeliveryOrderDetails
+        .Where(x => x.SalesOrder == payload.DeliveryNote).ToListAsync();
+
+                    if (existing != null)
+                    {
+                        // Update existing
+                        foreach(var  dto in existing)
+                {
+                    dto.RoutedClerk = payload.ClerkId.ToString();
+                }
+                        
+
+                    }
+
+               
+                await _context.SaveChangesAsync();
+
+            
+
+
+            return Ok(new { message = "Saved successfully", count = 0 });
+
         }
         [HttpPost("revieworderdetails")]
         public async Task<IActionResult> GetAdminSalesOrders([FromBody] SalesOrderRequest request)
@@ -766,6 +800,90 @@ namespace Ortho_xact_api.Controllers
 
             return Ok(groupedOrders);
         }
+        [HttpGet("GetDashBoard")]
+        public async Task<IActionResult> GetDashBoard([FromQuery] string period = "currentMonth")
+        {
+            DateTime startDate = DateTime.MinValue;
+            DateTime endDate = DateTime.Today;
+
+            // Determine date range based on period
+            switch (period.ToLower())
+            {
+                case "last7days":
+                    startDate = DateTime.Today.AddDays(-7);
+                    break;
+                case "all":
+                    startDate = DateTime.Today.AddYears(-1);
+                    break;
+
+                case "lastmonth":
+                    var firstDayLastMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1);
+                    var lastDayLastMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddDays(-1);
+                    startDate = firstDayLastMonth;
+                    endDate = lastDayLastMonth;
+                    break;
+
+                case "currentmonth":
+                default:
+                    startDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+                    endDate = DateTime.Today;
+                    break;
+            }
+
+            // Fetch orders within date range
+            var groupedOrders = await _sysContext.VwFetchSordetails
+                .Where(o => o.OrderStatus == "4" && o.OrderDate >= startDate && o.OrderDate <= endDate)
+                .Select(o => new
+                {
+                    SalesOrder = o.SalesOrder.TrimStart('0'),
+                    Status = o.Status,
+                    area= o.Area
+                }).Distinct()
+                .ToListAsync();
+
+            // Role-based filtering (same as before)
+            var roles = User.FindFirst(ClaimTypes.Role)?.Value;
+            var username = User.FindFirst(ClaimTypes.Name)?.Value;
+
+            if (roles == "rep")
+            {
+                var areas = await _context.AreaMappings
+                    .Where(a => a.Username == username)
+                    .Select(a => a.Area)
+                    .ToListAsync();
+
+                groupedOrders = groupedOrders
+                    .Where(o => areas.Contains(o.area) &&
+                                (o.Status == null || o.Status == "Inprogress" || o.Status == "RepCompleted"))
+                    .ToList();
+            }
+            else if (roles == "repclerk")
+            {
+                groupedOrders = groupedOrders
+                    .Where(o => o.Status == "RepCompleted"
+                             || o.Status == "StoresInProgress"
+                             || o.Status == "Completed&ReadyForValidation"
+                             || o.Status == "Send Email To Customer Service"
+                             || o.Status == "ReadyToPostSyspro")
+                    .ToList();
+            }
+
+            if (!groupedOrders.Any())
+                return NotFound("Sales order not found.");
+
+            // Aggregate counts by Status
+            var dashboardData = groupedOrders
+                .GroupBy(o => o.Status ?? "Not Started")
+                .Select(g => new
+                {
+                    name = g.Key,
+                    value = g.Count()
+                })
+                .ToList();
+
+            return Ok(dashboardData);
+        }
+
         [HttpGet("GetSalesPerson")]
         public async Task<IActionResult> GetSalesPerson()
         {
@@ -936,5 +1054,14 @@ namespace Ortho_xact_api.Controllers
         }
 
 
+    }
+    public class DashboardRequest
+    {
+        public string Period { get; set; }
+    }
+    public class RerouteRequestDto
+    {
+        public string DeliveryNote { get; set; }
+        public int ClerkId { get; set; }
     }
 }

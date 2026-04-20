@@ -1333,6 +1333,7 @@ public partial class SysproContext : DbContext
             entity.Property(e => e.Area)
                 .HasMaxLength(10)
                 .IsUnicode(false);
+            entity.Property(e => e.ClerkDate).HasColumnType("datetime");
             entity.Property(e => e.Customer)
                 .HasMaxLength(15)
                 .IsUnicode(false);
@@ -1362,10 +1363,12 @@ public partial class SysproContext : DbContext
                 .HasMaxLength(10)
                 .IsUnicode(false)
                 .HasColumnName("MWarehouse");
+            entity.Property(e => e.OrderDate).HasColumnType("datetime");
             entity.Property(e => e.OrderStatus)
                 .HasMaxLength(1)
                 .IsUnicode(false)
                 .IsFixedLength();
+            entity.Property(e => e.RepEntertedDate).HasColumnType("datetime");
             entity.Property(e => e.RepUsageQty).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.RetQty).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.SalesOrder)

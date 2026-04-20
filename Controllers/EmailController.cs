@@ -95,7 +95,7 @@ namespace Ortho_xact_api.Controllers
                 request.SalesOrderNumber = numericOrder.ToString("D15");
             }
             var emailsetting = _context.EmailSettings.FirstOrDefault();
-            var exisitingOrder = _context.DeliveryOrderDetails.Where(c => c.SalesOrder==request.SalesOrderNumber).ToList();
+            var exisitingOrder = _context.DeliveryOrderDetails.Where(c => c.SalesOrder==request.SalesOrderNumber && c.Variance != null && c.Variance != 0).ToList();
             var fromAddress = new MailAddress("codexitza@gmail.com", "Codex IT");
             
             MailAddress toAddress;
