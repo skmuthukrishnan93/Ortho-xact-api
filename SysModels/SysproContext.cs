@@ -24,6 +24,7 @@ public partial class SysproContext : DbContext
     public virtual DbSet<SorDetailBin> SorDetailBins { get; set; }
 
     public virtual DbSet<SorMaster> SorMasters { get; set; }
+    public virtual DbSet<InvMultBin> InvMultBins { get; set; }
 
     public virtual DbSet<VwFetchSordetail> VwFetchSordetails { get; set; }
 
@@ -66,6 +67,74 @@ public partial class SysproContext : DbContext
                 .IsConcurrencyToken();
         });
 
+        modelBuilder.Entity<InvMultBin>(entity =>
+        {
+            entity.HasKey(e => new { e.StockCode, e.Warehouse, e.Bin })
+                .HasName("InvMultBinKey");
+
+            entity.ToTable("InvMultBin");
+
+            entity.Property(e => e.StockCode)
+                .HasMaxLength(30)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+
+            entity.Property(e => e.Warehouse)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+
+            entity.Property(e => e.Bin)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+
+            entity.Property(e => e.QtyOnHand1)
+                .HasColumnType("decimal(18, 6)")
+                .HasDefaultValue(0m);
+
+            entity.Property(e => e.QtyOnHand2)
+                .HasColumnType("decimal(18, 6)")
+                .HasDefaultValue(0m);
+
+            entity.Property(e => e.QtyOnHand3)
+                .HasColumnType("decimal(18, 6)")
+                .HasDefaultValue(0m);
+
+            entity.Property(e => e.LastReceiptDate)
+                .HasColumnType("datetime");
+
+            entity.Property(e => e.LastIssueDate)
+                .HasColumnType("datetime");
+
+            entity.Property(e => e.SoQtyToShip)
+                .HasColumnType("decimal(18, 6)")
+                .HasDefaultValue(0m);
+
+            entity.Property(e => e.Note)
+                .HasMaxLength(7)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+
+            entity.Property(e => e.QtyDispatched)
+                .HasColumnType("decimal(18, 6)")
+                .HasDefaultValue(0m);
+
+            entity.Property(e => e.OnHold)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .IsFixedLength()
+                .HasDefaultValue(" ");
+
+            entity.Property(e => e.OnHoldReason)
+                .HasMaxLength(40)
+                .IsUnicode(false)
+                .HasDefaultValue(" ");
+
+            entity.Property(e => e.TimeStamp)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+        });
         modelBuilder.Entity<SalSalesperson>(entity =>
         {
             entity.HasKey(e => new { e.Branch, e.Salesperson }).HasName("SalSalespersonKey");

@@ -7,6 +7,7 @@
     using System.Text;
     using System.IO;
     using Ortho_xact_api.SysModels;
+    using ServiceReference2;
 
     public class SysproWebService
     {
@@ -27,10 +28,11 @@
             string xmlIn = "<Logon><Parameters><Device>Web</Device></Parameters></Logon>";
 
             // Make the call
-            var resultStream = await client.LogonAsync(Username, Password, CompanyId, "LIVE", Language.AUTO, LogDetail.ldNoDebug, Instance.EncoreInstance_0, "");
+           // var resultStream = await client.LogonAsync(Username, Password, CompanyId, "LIVE", Language.AUTO, LogDetail.ldNoDebug, Instance.EncoreInstance_0, "");
+             var resultStream = await client.LogonAsync(Username, Password, CompanyId, "", Language.AUTO, LogDetail.ldNoDebug, Instance.EncoreInstance_0, "");
 
-             
-            
+
+
 
             return resultStream;
         }
@@ -40,7 +42,7 @@
             {
                 MaxReceivedMessageSize = 10485760
             };
-            //var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/utilities.asmx");
+           // var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/utilities.asmx");
             var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/utilities.asmx");
 
             var client = new utilitiesclassSoapClient(binding, endpoint);
@@ -80,6 +82,35 @@
 
 
             return resultStream;
+        }
+        public async Task<QueryResponse> Query(string sessionId, string businessObject, string parameters, string xmlIn)
+        {
+            var binding = new BasicHttpBinding(BasicHttpSecurityMode.None)
+            {
+                MaxReceivedMessageSize = 10485760
+            };
+            //var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/Query.asmx");
+
+            var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/Transaction.asmx");
+
+            var client = new queryclassSoapClient(binding, endpoint);
+
+            var request = new QueryRequest
+            {
+                Body = new QueryRequestBody
+                {
+                    UserId = sessionId,
+                    BusinessObject = businessObject,
+                    XMLIn = xmlIn
+                }
+            };
+
+            var response = await client.QueryAsync(request);
+
+
+
+
+            return response;
         }
 
     }

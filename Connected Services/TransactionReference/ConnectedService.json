@@ -1,7 +1,8 @@
 {
   "ExtendedData": {
     "inputs": [
-      "http://192.168.23.157/SYSPRO8WebServices/transaction.asmx?wsdl"
+     // "http://192.168.23.157/SYSPRO8WebServices/transaction.asmx?wsdl",
+      "http://192.168.16.70/SYSPRO8WebServices/transaction.asmx?wsdl"
     ],
     "collectionTypes": [
       "System.Array",

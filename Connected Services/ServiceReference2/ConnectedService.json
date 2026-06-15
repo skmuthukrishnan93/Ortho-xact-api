@@ -1,20 +1,20 @@
 {
   "ExtendedData": {
     "inputs": [
-      //"http://192.168.23.157/SYSPRO8WebServices/utilities.asmx?wsdl",
-      "http://192.168.16.70/SYSPRO8WebServices/utilities.asmx?wsdl"
+     // "http://192.168.23.157/SYSPRO8WebServices/Query.asmx",
+      "http://192.168.16.70/SYSPRO8WebServices/Query.asmx"
     ],
     "collectionTypes": [
       "System.Array",
       "System.Collections.Generic.Dictionary`2"
     ],
+    "messageContract": true,
     "namespaceMappings": [
-      "*, ServiceReference1"
+      "*, ServiceReference2"
     ],
     "references": [
       "Azure.Core, {Azure.Core, 1.38.0}",
       "Azure.Identity, {Azure.Identity, 1.11.4}",
-      "E:\\Ortho-xact-api\\obj\\Release\\net8.0\\PubTmp\\Out\\SysproWcfClient.dll",
       "Microsoft.AspNetCore.Authentication.JwtBearer, {Microsoft.AspNetCore.Authentication.JwtBearer, 8.0.15}",
       "Microsoft.Bcl.AsyncInterfaces, {Microsoft.Bcl.AsyncInterfaces, 7.0.0}",
       "Microsoft.Data.SqlClient, {Microsoft.Data.SqlClient, 5.1.6}",
@@ -49,6 +49,7 @@
       "Microsoft.Extensions.Logging.Debug, {Microsoft.Extensions.Logging.Debug, 9.0.5}",
       "Microsoft.Extensions.Logging.EventLog, {Microsoft.Extensions.Logging.EventLog, 9.0.5}",
       "Microsoft.Extensions.Logging.EventSource, {Microsoft.Extensions.Logging.EventSource, 9.0.5}",
+      "Microsoft.Extensions.ObjectPool, {Microsoft.Extensions.ObjectPool, 8.0.10}",
       "Microsoft.Extensions.Options, {Microsoft.Extensions.Options, 9.0.5}",
       "Microsoft.Extensions.Options.ConfigurationExtensions, {Microsoft.Extensions.Options.ConfigurationExtensions, 9.0.5}",
       "Microsoft.Extensions.Primitives, {Microsoft.Extensions.Primitives, 9.0.5}",
@@ -72,12 +73,20 @@
       "System.IO.Pipelines, {System.IO.Pipelines, 9.0.5}",
       "System.Memory.Data, {System.Memory.Data, 1.0.2}",
       "System.Security.Cryptography.Cng, {System.Security.Cryptography.Cng, 5.0.0}",
+      "System.Security.Cryptography.Pkcs, {System.Security.Cryptography.Pkcs, 8.0.1}",
       "System.Security.Cryptography.ProtectedData, {System.Security.Cryptography.ProtectedData, 6.0.0}",
+      "System.Security.Cryptography.Xml, {System.Security.Cryptography.Xml, 8.0.2}",
+      "System.ServiceModel, {System.ServiceModel.Primitives, 8.1.2}",
+      "System.ServiceModel.Duplex, {System.ServiceModel.Primitives, 8.1.2}",
+      "System.ServiceModel.Http, {System.ServiceModel.Http, 8.1.2}",
+      "System.ServiceModel.NetFramingBase, {System.ServiceModel.NetFramingBase, 8.1.2}",
+      "System.ServiceModel.NetTcp, {System.ServiceModel.NetTcp, 8.1.2}",
+      "System.ServiceModel.Primitives, {System.ServiceModel.Primitives, 8.1.2}",
+      "System.ServiceModel.Security, {System.ServiceModel.Primitives, 8.1.2}",
       "System.ServiceProcess.ServiceController, {System.ServiceProcess.ServiceController, 9.0.5}",
       "System.Text.Encodings.Web, {System.Text.Encodings.Web, 9.0.5}",
       "System.Text.Json, {System.Text.Json, 9.0.5}"
     ],
-    "sync": true,
     "targetFramework": "net8.0",
     "typeReuseMode": "All"
   }

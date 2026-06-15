@@ -1,15 +1,19 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting.WindowsServices;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Ortho_xact_api.Models;
 using Ortho_xact_api.SysModels;
-using System.Text;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
-using Microsoft.Extensions.Logging;
+using System.Text;
 
+var culture = CultureInfo.InvariantCulture;
 
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 var builder = WebApplication.CreateBuilder(args);
 
 // Run as a Windows Service
