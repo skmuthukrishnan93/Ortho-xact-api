@@ -3,5 +3,6 @@
     public class DeliveryOrderDetailPayload
     {
         public List<DeliveryOrderDetailDto> Data { get; set; } = new();
+        public List<PatientProcedureDto>? Procedures { get; set; }
     }
 }

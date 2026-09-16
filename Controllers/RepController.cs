@@ -155,7 +155,7 @@ namespace Ortho_xact_api.Controllers
 
         }
 
-        [HttpPost("posttosyspro2")]
+        [HttpPost("posttosyspro")]
         public async Task<IActionResult> PostToSyspro([FromBody] DeliveryOrderDetailPayload payload)
         {
             try
@@ -667,14 +667,15 @@ namespace Ortho_xact_api.Controllers
             Document.Append("</PostChangeSalesOrderKitComp>");
             return Document.ToString();
         }
-        [HttpPost("posttosyspro")]
+        [HttpPost("posttosyspro2")]
         public async Task<IActionResult> SysproPostBusinessObject(
     [FromBody] DeliveryOrderDetailPayload payload)
         {
             StringBuilder warnMessages = new StringBuilder();
+            var items = payload.Data;
             try
             {
-                var items = payload.Data;
+                
 
                 if (items == null || !items.Any())
                     return BadRequest("No data received");
@@ -729,14 +730,42 @@ namespace Ortho_xact_api.Controllers
                             c.MbomFlag != "P")
                         .ToListAsync();
 
-                    
+                    var newSalesList = new List<SorDetail>();
+                    var newDtoList = new List<DeliveryOrderDetailDto>();
                     // ============================================
                     // VALIDATION
                     // ============================================
+                    var delivery = await _context.DeliveryOrderDetails.Where(c => c.SalesOrder == salesOrder && c.Set !=c.MstockCode).ToListAsync();
+
                     if (!existingOrderDetails.Any())
                     {
-                        return BadRequest(
-                            $"No SO detail lines found : {salesOrder}");
+                        foreach(var item in delivery)
+                        {
+                            var newOrderDtls = new SorDetail();
+                            var newDTO = new DeliveryOrderDetailDto();
+                            newOrderDtls.SalesOrder = item.SalesOrder;
+                            newOrderDtls.SalesOrderLine = item.Line;
+                            newOrderDtls.MstockCode = item.MstockCode;
+                            newOrderDtls.MstockDes = item.MstockDes;
+                            newOrderDtls.MorderUom = "EA";
+                            newOrderDtls.MpriceUom = "EA";
+                            newOrderDtls.Mprice = 0;
+                            newSalesList.Add(newOrderDtls);
+
+                            newDTO.SalesOrder = item.SalesOrder;
+                            newDTO.SalesOrderLine = item.Line;
+                            newDTO.MstockCode = item.MstockCode;
+                            newDTO.MstockDes = item.MstockDes;
+                            newDTO.RepUsageQty= item.RepUsageQty;
+                            newDTO.Usage = item.Usage;
+                            newDTO.Variance = item.Variance;
+                            newDTO.Mwarehouse = item.Mwarehouse;
+                            newDTO.MbomFlag = "C";
+                            newDtoList.Add(newDTO);
+                        }
+                       
+                        // return BadRequest(
+                        //    $"No SO detail lines found : {salesOrder}");
                     }
                     //var linesToProcess = new List<SorDetail>();
 
@@ -759,48 +788,60 @@ namespace Ortho_xact_api.Controllers
                     // STEP 1
                     // CALL SORTOX ONLY ONE TIME
                     // ============================================
-                    string sortoxParameter =
-                        BuildSortoxParameterXml();
-
-                    string sortoxDocument =
-                        BuildSortoxDocumentXml(
-                            salesOrder,
-                            existingOrderDetails,
-                            "02"
-                        );
-
-                    var cancelResponse =
-                        await syspro.Transaction(
-                            sessionId,
-                            "SORTOX",
-                            sortoxParameter,
-                            sortoxDocument
-                        );
-
-                    string cancelResult =
-                        cancelResponse.Body.PostResult;
-                    await SaveSysproLog(
-    salesOrder,
-    "SORTOX",
-    sortoxDocument,
-    cancelResult
-);
-                    // ============================================
-                    // CHECK SORTOX ERROR
-                    // ============================================
-                    if (cancelResult.Contains("<ErrorDescription>"))
+                    if (existingOrderDetails.Any())
                     {
-                        existingMaster.OrderStatus = "4";
+                        string sortoxParameter =
+                            BuildSortoxParameterXml();
 
-                        await _sysContext.SaveChangesAsync();
-                        return BadRequest(new
+                        const int batchSize = 10;
+
+                        for (int i = 0; i < existingOrderDetails.Count; i += batchSize)
                         {
-                            message = "SORTOX Failed",
-                            salesOrder,
-                            response = cancelResult
-                        });
-                    }
+                            var batchDetails = existingOrderDetails
+                                .Skip(i)
+                                .Take(batchSize)
+                                .ToList();
 
+                            string sortoxDocument =
+                                BuildSortoxDocumentXml(
+                                    salesOrder,
+                                    batchDetails,
+                                    "02"
+                                );
+
+                            var cancelResponse =
+                                await syspro.Transaction(
+                                    sessionId,
+                                    "SORTOX",
+                                    sortoxParameter,
+                                    sortoxDocument
+                                );
+
+                            string cancelResult =
+                                cancelResponse.Body.PostResult;
+
+                            await SaveSysproLog(
+                                salesOrder,
+                                $"SORTOX_BATCH_{(i / batchSize) + 1}",
+                                sortoxDocument,
+                                cancelResult
+                            );
+
+                            if (cancelResult.Contains("<ErrorDescription>"))
+                            {
+                                existingMaster.OrderStatus = "4";
+
+                                await _sysContext.SaveChangesAsync();
+
+                                return BadRequest(new
+                                {
+                                    message = $"SORTOX Batch {(i / batchSize) + 1} Failed",
+                                    salesOrder,
+                                    response = cancelResult
+                                });
+                            }
+                        }
+                    }
                     // ============================================
                     // STEP 2
                     // CALL SORTOI ONLY ONE TIME
@@ -808,42 +849,108 @@ namespace Ortho_xact_api.Controllers
                     string sortoiParameter =
                         BuildSortoiParameterXml();
 
-                    string sortoiDocument =
-                        BuildSortoiDocumentXml(
-                            orderGroup.ToList(),
-                            existingMaster,existingOrderDetails
-                        );
-
-                    var addResponse =
-                        await syspro.Transaction(
-                            sessionId,
-                            "SORTOI",
-                            sortoiParameter,
-                            sortoiDocument
-                        );
-
-                     string addResult =
-                        addResponse.Body.PostResult;
-                    await SaveSysproLog(
-       salesOrder,
-       "SORTOI",
-       sortoiDocument,
-       addResult
-   );
-                    // ============================================
-                    // CHECK SORTOI ERROR
-                    // ============================================
-                    if (addResult.Contains("<ErrorDescription>"))
+                    if (existingOrderDetails.Any())
                     {
-                        existingMaster.OrderStatus = "4";
+                        var orderLines = orderGroup.ToList();
 
-                        await _sysContext.SaveChangesAsync();
-                        return BadRequest(new
+                        for (int i = 0; i < orderLines.Count; i += 20)
                         {
-                            message = "SORTOI Failed",
-                            salesOrder,
-                            response = addResult
-                        });
+                            var batch = orderLines
+                                .Skip(i)
+                                .Take(20)
+                                .ToList();
+
+                            string sortoiDocument =
+                                BuildSortoiDocumentXml(
+                                    batch,
+                                    existingMaster,
+                                    existingOrderDetails
+                                );
+
+                            var addResponse =
+                                await syspro.Transaction(
+                                    sessionId,
+                                    "SORTOI",
+                                    sortoiParameter,
+                                    sortoiDocument
+                                );
+
+                            string addResult = addResponse.Body.PostResult;
+
+                            await SaveSysproLog(
+                                salesOrder,
+                                $"SORTOI_BATCH_{(i / 10) + 1}",
+                                sortoiDocument,
+                                addResult
+                            );
+
+                            if (addResult.Contains("<ErrorDescription>"))
+                            {
+                                existingMaster.OrderStatus = "4";
+
+                                await _sysContext.SaveChangesAsync();
+
+                                return BadRequest(new
+                                {
+                                    message = $"SORTOI Batch {(i / 10) + 1} Failed",
+                                    salesOrder,
+                                    response = addResult
+                                });
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < newDtoList.Count; i += 10)
+                        {
+                            var batchDtos = newDtoList
+                                .Skip(i)
+                                .Take(10)
+                                .ToList();
+
+                            var batchSales = newSalesList
+                                .Skip(i)
+                                .Take(10)
+                                .ToList();
+
+                            string sortoiDocument =
+                                BuildSortoiDocumentXml(
+                                    batchDtos,
+                                    existingMaster,
+                                    batchSales
+                                );
+
+                            var addResponse =
+                                await syspro.Transaction(
+                                    sessionId,
+                                    "SORTOI",
+                                    sortoiParameter,
+                                    sortoiDocument
+                                );
+
+                            string addResult = addResponse.Body.PostResult;
+
+                            await SaveSysproLog(
+                                salesOrder,
+                                $"SORTOI_BATCH_{(i / 10) + 1}",
+                                sortoiDocument,
+                                addResult
+                            );
+
+                            if (addResult.Contains("<ErrorDescription>"))
+                            {
+                                existingMaster.OrderStatus = "4";
+
+                                await _sysContext.SaveChangesAsync();
+
+                                return BadRequest(new
+                                {
+                                    message = $"SORTOI Batch {(i / 10) + 1} Failed",
+                                    salesOrder,
+                                    response = addResult
+                                });
+                            }
+                        }
                     }
 
                     // ============================================
@@ -936,6 +1043,7 @@ namespace Ortho_xact_api.Controllers
                     {
                         detail.MbomFlag = "C";
                         detail.MparentKitType = "K";
+                        detail.MqtyChangesFlag = "Y";
                     }
                         await _sysContext.SaveChangesAsync();
                     // ============================================
@@ -992,6 +1100,12 @@ namespace Ortho_xact_api.Controllers
             }
             catch (Exception ex)
             {
+                await SaveSysproLog(
+                                items.FirstOrDefault()?.SalesOrder,
+                                $"Exception",
+                                ex.Message.ToString(),
+                                ex.StackTrace.ToString()
+                            );
                 return StatusCode(500, new
                 {
                     message = ex.Message,
@@ -1000,6 +1114,436 @@ namespace Ortho_xact_api.Controllers
                 });
             }
         }
+        [HttpPost("posttosyspro3")]
+        public async Task<IActionResult> SysproPostBusinessObject2(
+    [FromBody] DeliveryOrderDetailPayload payload)
+        {
+            StringBuilder warnMessages = new StringBuilder();
+            var items = payload.Data;
+
+            try
+            {
+               
+                if (items == null || !items.Any())
+                    return BadRequest("No data received");
+
+                // ============================================
+                // GROUP SALES ORDERS
+                // ============================================
+                var groupedOrders = items.GroupBy(x => x.SalesOrder);
+
+                // ============================================
+                // LOGIN TO SYSPRO
+                // ============================================
+                var syspro = new SysproWebService();
+
+                var loginResponse = await syspro.LoginAsync(
+                    "CONS29",
+                    "",
+                    "OXZ"
+                );
+
+                string sessionId = loginResponse.Body.LogonResult;
+
+                // ============================================
+                // PROCESS EACH SALES ORDER
+                // ============================================
+                foreach (var orderGroup in groupedOrders)
+                {
+                    string salesOrder = orderGroup.Key;
+
+                    // ============================================
+                    // GET EXISTING MASTER
+                    // ============================================
+                    var existingMaster = await _sysContext.SorMasters
+                        .Where(c => c.SalesOrder == salesOrder)
+                        .FirstOrDefaultAsync();
+
+                    if (existingMaster == null)
+                    {
+                        return BadRequest(
+                            $"Sales order not found : {salesOrder}");
+                    }
+                    existingMaster.OrderStatus = "1";
+
+                    await _sysContext.SaveChangesAsync();
+                    _sysContext.ChangeTracker.Clear();
+                    // ============================================
+                    // GET EXISTING DETAILS
+                    // ============================================
+                    var existingOrderDetails = await _sysContext.SorDetails
+                        .Where(c =>
+                            c.SalesOrder == salesOrder &&
+                            c.MbomFlag != "P")
+                        .OrderBy(c => c.SalesOrderLine)
+                        .ToListAsync();
+
+                    var newSalesList = new List<SorDetail>();
+                    var newDtoList = new List<DeliveryOrderDetailDto>();
+                    // ============================================
+                    // VALIDATION
+                    // ============================================
+                    var delivery = await _context.DeliveryOrderDetails.Where(c => c.SalesOrder == salesOrder && c.Set != c.MstockCode).ToListAsync();
+
+                    if (!existingOrderDetails.Any())
+                    {
+                        foreach (var item in delivery)
+                        {
+                            var newOrderDtls = new SorDetail();
+                            var newDTO = new DeliveryOrderDetailDto();
+                            newOrderDtls.SalesOrder = item.SalesOrder;
+                            newOrderDtls.SalesOrderLine = item.Line;
+                            newOrderDtls.MstockCode = item.MstockCode;
+                            newOrderDtls.MstockDes = item.MstockDes;
+                            newOrderDtls.MorderUom = "EA";
+                            newOrderDtls.MpriceUom = "EA";
+                            newOrderDtls.Mprice = 0;
+                            newSalesList.Add(newOrderDtls);
+
+                            newDTO.SalesOrder = item.SalesOrder;
+                            newDTO.SalesOrderLine = item.Line;
+                            newDTO.MstockCode = item.MstockCode;
+                            newDTO.MstockDes = item.MstockDes;
+                            newDTO.RepUsageQty = item.RepUsageQty;
+                            newDTO.Usage = item.Usage;
+                            newDTO.Variance = item.Variance;
+                            newDTO.Mwarehouse = item.Mwarehouse;
+                            newDTO.MbomFlag = "C";
+                            newDtoList.Add(newDTO);
+                        }
+
+                        // return BadRequest(
+                        //    $"No SO detail lines found : {salesOrder}");
+                    }
+                    //var linesToProcess = new List<SorDetail>();
+
+                    //foreach (var dto in orderGroup)
+                    //{
+                    //    var sorLine = existingOrderDetails
+                    //        .FirstOrDefault(x =>
+                    //            x.MstockCode == dto.MstockCode);
+
+                    //    if (sorLine == null)
+                    //        continue;
+
+                    //    // Skip if Usage already equals ShipQty
+                    //    if (dto.Usage == sorLine.MshipQty)
+                    //        continue;
+
+                    //    linesToProcess.Add(sorLiner);
+                    //}
+                    // ============================================
+                    // STEP 1
+                    // CALL SORTOX ONLY ONE TIME
+                    // ============================================
+                    if (existingOrderDetails.Any())
+                    {
+                        string sortoxParameter =
+                            BuildSortoxParameterXml();
+
+                        const int batchSize = 20;
+
+                        for (int i = 0; i < existingOrderDetails.Count; i += batchSize)
+                        {
+                            var batchDetails = existingOrderDetails
+                                .Skip(i)
+                                .Take(batchSize)
+                                .ToList();
+
+                            string sortoxDocument =
+                                BuildSortoxDocumentXml(
+                                    salesOrder,
+                                    batchDetails,
+                                    "02"
+                                );
+
+                            var cancelResponse =
+                                await syspro.Transaction(
+                                    sessionId,
+                                    "SORTOX",
+                                    sortoxParameter,
+                                    sortoxDocument
+                                );
+
+                            string cancelResult =
+                                cancelResponse.Body.PostResult;
+
+                            await SaveSysproLog(
+                                salesOrder,
+                                $"SORTOX_BATCH_{(i / batchSize) + 1}",
+                                sortoxDocument,
+                                cancelResult
+                            );
+
+                            if (cancelResult.Contains("<ErrorDescription>"))
+                            {
+                                existingMaster.OrderStatus = "4";
+
+                                await _sysContext.SaveChangesAsync();
+
+                                return BadRequest(new
+                                {
+                                    message = $"SORTOX Batch {(i / batchSize) + 1} Failed",
+                                    salesOrder,
+                                    response = cancelResult
+                                });
+                            }
+                        }
+                    }
+                    // ============================================
+                    // STEP 2
+                    // CALL SORTOI ONLY ONE TIME
+                    // ============================================
+                    string sortoiParameter =
+                        BuildSortoiParameterXml();
+
+                    if (existingOrderDetails.Any())
+                    {
+                        var orderLines = orderGroup.ToList();
+
+                        for (int i = 0; i < orderLines.Count; i += 20)
+                        {
+                            var batch = orderLines
+                                .Skip(i)
+                                .Take(20)
+                                .ToList();
+
+                            string sortoiDocument =
+                                BuildSortoiDocumentXml(
+                                    batch,
+                                    existingMaster,
+                                    existingOrderDetails
+                                );
+
+                            var addResponse =
+                                await syspro.Transaction(
+                                    sessionId,
+                                    "SORTOI",
+                                    sortoiParameter,
+                                    sortoiDocument
+                                );
+
+                            string addResult = addResponse.Body.PostResult;
+
+                            await SaveSysproLog(
+                                salesOrder,
+                                $"SORTOI_BATCH_{(i / 20) + 1}",
+                                sortoiDocument,
+                                addResult
+                            );
+
+                            if (addResult.Contains("<ErrorDescription>"))
+                            {
+                                existingMaster.OrderStatus = "4";
+
+                                await _sysContext.SaveChangesAsync();
+
+                                return BadRequest(new
+                                {
+                                    message = $"SORTOI Batch {(i / 20) + 1} Failed",
+                                    salesOrder,
+                                    response = addResult
+                                });
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < newDtoList.Count; i += 10)
+                        {
+                            var batchDtos = newDtoList
+                                .Skip(i)
+                                .Take(10)
+                                .ToList();
+
+                            var batchSales = newSalesList
+                                .Skip(i)
+                                .Take(10)
+                                .ToList();
+
+                            string sortoiDocument =
+                                BuildSortoiDocumentXml(
+                                    batchDtos,
+                                    existingMaster,
+                                    batchSales
+                                );
+
+                            var addResponse =
+                                await syspro.Transaction(
+                                    sessionId,
+                                    "SORTOI",
+                                    sortoiParameter,
+                                    sortoiDocument
+                                );
+
+                            string addResult = addResponse.Body.PostResult;
+
+                            await SaveSysproLog(
+                                salesOrder,
+                                $"SORTOI_BATCH_{(i / 10) + 1}",
+                                sortoiDocument,
+                                addResult
+                            );
+
+                            if (addResult.Contains("<ErrorDescription>"))
+                            {
+                                existingMaster.OrderStatus = "4";
+
+                                await _sysContext.SaveChangesAsync();
+
+                                return BadRequest(new
+                                {
+                                    message = $"SORTOI Batch {(i / 10) + 1} Failed",
+                                    salesOrder,
+                                    response = addResult
+                                });
+                            }
+                        }
+                    }
+
+                    // ============================================
+                    // STEP 3
+                    // UPDATE MBOMFLAG
+                    // ============================================
+                    var updateDetails = await _sysContext.SorDetails
+                        .Where(c =>
+                            c.SalesOrder == salesOrder &&
+                            c.MbomFlag != "P")
+                        .ToListAsync();
+                    var deliveryDetails = await _context.DeliveryOrderDetails
+                        .Where(c => c.SalesOrder == salesOrder)
+                        .ToListAsync();
+
+                    var stockCodes = updateDetails
+     .Select(x => x.MstockCode)
+     .Distinct()
+     .ToList();
+
+                    var invMultBins = await _sysContext.InvMultBins
+                        .Where(x => stockCodes.Contains(x.StockCode))
+                        .ToListAsync();
+                    
+                    foreach (var detail in updateDetails)
+                    {
+
+                        if (detail.MbackOrderQty > 0)
+                        {
+                            var set = deliveryDetails.Where(c => c.MstockCode==detail.MstockCode).Select(x => x.Set).Distinct().ToList().FirstOrDefault();
+                            var bin = invMultBins.Where(c => c.StockCode == detail.MstockCode && c.Bin == set).OrderByDescending(t => t.QtyOnHand1).FirstOrDefault();
+                            if (bin != null)
+                            {
+                                var availableBin = bin.Bin;
+                                if (availableBin != null)
+                                {
+                                    bin.SoQtyToShip = 0;
+                                    
+                                }
+                            }
+                        }
+                    }
+                    await _sysContext.SaveChangesAsync();
+                    _sysContext.ChangeTracker.Clear();
+
+
+                    foreach (var detail in updateDetails)
+                    {
+                        if (detail.MbackOrderQty > 0)
+                        {
+                            var set = deliveryDetails.Where(c => c.MstockCode == detail.MstockCode).Select(x => x.Set).Distinct().ToList().FirstOrDefault();
+
+                            var bin = invMultBins.Where(c => c.QtyOnHand1 >= detail.MbackOrderQty && c.Bin == set && c.StockCode == detail.MstockCode).OrderByDescending(t => t.QtyOnHand1).FirstOrDefault();
+                            if (bin != null)
+                            {
+                                var availableBin = bin.Bin;
+                                if (availableBin != null)
+                                {
+                                    string sortboParameter =
+                        SortBoParamxml();
+
+                                    string sortBoxmlIn =
+                                        SortBoXml(availableBin,
+                                            detail
+                                        );
+
+                                    var sortBoResponse =
+                                        await syspro.Transaction(
+                                            sessionId,
+                                            "SORTBO",
+                                            sortboParameter,
+                                            sortBoxmlIn
+                                        );
+                                    await SaveSysproLog(
+                                    salesOrder,
+                                    "SORTBO",
+                                    sortBoxmlIn,
+                                    sortBoResponse.Body.PostResult
+                                );
+                                }
+                            }
+                        }
+                    }
+                    _sysContext.ChangeTracker.Clear();
+                    var updateDetails1 = await _sysContext.SorDetails
+                        .Where(c =>
+                            c.SalesOrder == salesOrder &&
+                            c.MbomFlag != "P")
+                        .ToListAsync();
+
+                    foreach (var detail in updateDetails1)
+                    {
+                        detail.MbomFlag = "C";
+                        detail.MparentKitType = "K";
+                        detail.MqtyChangesFlag = "Y";
+                    }
+                    await _sysContext.SaveChangesAsync();
+                    var CurrentDate = DateTime.Now;
+                    foreach (var dto in deliveryDetails )
+                    {
+                       
+                        
+                            dto.Status = "PostedToSyspro";
+                            dto.PostedDate = CurrentDate;
+                    }
+                }
+
+                // ============================================
+                // SAVE DATABASE
+                // ============================================
+                await _context.SaveChangesAsync();
+
+                // ============================================
+                // LOGOUT
+                // ============================================
+                await syspro.LogoutAsync(sessionId);
+                string allErrors = "";
+                if (warnMessages.Length > 0)
+                {
+                    allErrors = warnMessages.ToString();
+                    // Log, return, or throw exception
+                }
+                return Ok(new
+                {
+                    message = "Successfully posted to SYSPRO "
+
+                });
+            }
+            catch (Exception ex)
+            {
+                await SaveSysproLog(
+                               items.FirstOrDefault()?.SalesOrder,
+                               $"Exception",
+                               ex.Message.ToString(),
+                               ex.StackTrace.ToString()
+                           );
+                return StatusCode(500, new
+                {
+                    message = ex.Message,
+                    inner = ex.InnerException?.Message,
+                    stackTrace = ex.StackTrace
+                });
+            }
+        }
+
         [HttpGet("sysprologs")]
         public async Task<IActionResult> GetSysproLogs()
         {
@@ -1252,7 +1796,6 @@ namespace Ortho_xact_api.Controllers
                     priceUom = existingDetail.MpriceUom ?? "EA";
                     Stockdesc = existingDetail.MstockDes;
                     price = existingDetail.Mprice.ToString();
-                    priceCode = existingDetail.MpriceCode;
 
                 }
 
@@ -1500,13 +2043,73 @@ namespace Ortho_xact_api.Controllers
         }
 
         [HttpPost("save")]
+        [Authorize]
         public async Task<IActionResult> SaveDeliveryOrders([FromBody] DeliveryOrderDetailPayload payload)
         {
             var items = payload.Data;
             if (items == null || !items.Any())
                 return BadRequest("No data received.");
+            if (items.GroupBy(x => new { x.SalesOrder, x.SalesOrderLine }).Any(group => group.Count() > 1))
+                return BadRequest("Duplicate sales order lines were submitted.");
+            // Validate the complete capture against source lines, not client quantities/kit flags.
+            if (payload.Procedures != null)
+            {
+                if (items.Select(x => x.SalesOrder).Distinct().Count() != 1)
+                    return BadRequest("Capture procedures for one sales order at a time.");
+                var salesOrder = items[0].SalesOrder.Trim();
+                foreach (var item in items) item.SalesOrder = salesOrder;
+                var source = await _sysContext.VwFetchSordetails
+                    .Where(x => x.SalesOrder == salesOrder && x.OrderStatus == "4")
+                    .OrderBy(x => x.SalesOrderLine).ToListAsync();
+                if (source.Count == 0)
+                    return BadRequest("This sales order is no longer in warehouse status. No data was saved.");
+                var sourceLines = source.Select(x => (int)x.SalesOrderLine).ToHashSet();
+                var submittedLines = items.Select(x => x.SalesOrderLine).ToHashSet();
+                if (source.Count != sourceLines.Count)
+                    return BadRequest("The source order contains duplicate line numbers. Please contact support; no data was saved.");
+                if (!sourceLines.SetEquals(submittedLines))
+                {
+                    var missing = string.Join(", ", sourceLines.Except(submittedLines).OrderBy(x => x));
+                    var removed = string.Join(", ", submittedLines.Except(sourceLines).OrderBy(x => x));
+                    return BadRequest($"The capture does not match the complete order. Missing from capture: {missing}. No longer in order: {removed}. Reopen the order to load all lines. No data was saved.");
+                }
+                var procedures = payload.Procedures.OrderBy(x => x.ProcedureNumber).ToList();
+                if (procedures.Count == 0 || !procedures.Select(x => x.ProcedureNumber).SequenceEqual(Enumerable.Range(1, procedures.Count)) ||
+                    procedures.Any(x => x.ProcedureDate == default || x.LineNumbers == null || x.LineNumbers.Count == 0 ||
+                        string.IsNullOrWhiteSpace(x.PatientNumber) || string.IsNullOrWhiteSpace(x.PatientName) ||
+                        string.IsNullOrWhiteSpace(x.SurgeonName) || string.IsNullOrWhiteSpace(x.CgSetNumber)))
+                    return BadRequest("Complete all patient details and assign kits to each sequential procedure.");
+                var assigned = procedures.SelectMany(x => x.LineNumbers).ToList();
+                if (assigned.Count != items.Count || assigned.Distinct().Count() != assigned.Count ||
+                    !assigned.ToHashSet().SetEquals(items.Select(x => x.SalesOrderLine)))
+                    return BadRequest("Assign every order line to exactly one procedure.");
+                foreach (var line in source)
+                {
+                    var item = items.Single(x => x.SalesOrderLine == (int)line.SalesOrderLine);
+                    if (line.MbomFlag != "P" && (!item.RepUsageQty.HasValue || item.RepUsageQty < 0 || item.RepUsageQty > line.MshipQty))
+                        return BadRequest("Usage must be between zero and the delivered quantity.");
+                }
+                var previous = await _context.PatientProcedures.Where(x => x.SalesOrder == salesOrder).ToListAsync();
+                // Update matching records in place so a retry cannot introduce duplicate keys.
+                _context.PatientProcedures.RemoveRange(previous.Where(x => x.ProcedureNumber > procedures.Count));
+                foreach (var procedure in procedures)
+                {
+                    var entity = previous.SingleOrDefault(x => x.ProcedureNumber == procedure.ProcedureNumber);
+                    if (entity == null)
+                    {
+                        entity = new PatientProcedure { SalesOrder = salesOrder, ProcedureNumber = procedure.ProcedureNumber };
+                        _context.PatientProcedures.Add(entity);
+                    }
+                    entity.PatientNumber = procedure.PatientNumber.Trim();
+                    entity.PatientName = procedure.PatientName.Trim();
+                    entity.SurgeonName = procedure.SurgeonName.Trim();
+                    entity.ProcedureDate = procedure.ProcedureDate;
+                    entity.CgSetNumber = procedure.CgSetNumber.Trim();
+                    entity.LineNumbersJson = System.Text.Json.JsonSerializer.Serialize(procedure.LineNumbers);
+                }
+            }
             var username = User.FindFirst(ClaimTypes.Name)?.Value;
-            var routedClerk= _context.Users.FirstAsync(x => x.Username == username).Result.DefaultRouteClerk;
+            var routedClerk = await _context.Users.Where(x => x.Username == username).Select(x => x.DefaultRouteClerk).FirstOrDefaultAsync();
             if (routedClerk == null)
                 return BadRequest("No default route clerk set for the user.Please reach out admin team.");
 
@@ -1514,7 +2117,9 @@ namespace Ortho_xact_api.Controllers
             var groupedBySalesOrder = items
                 .GroupBy(dto => dto.SalesOrder);
 
-            var entities = new List<DeliveryOrderDetail>();
+            var insertedCount = 0;
+            var updatedCount = 0;
+            await using var transaction = await _context.Database.BeginTransactionAsync();
             int count = _context.DeliveryOrderDetails
     .Select(dd => dd.RepVerNumber)
     .Distinct()
@@ -1537,6 +2142,8 @@ namespace Ortho_xact_api.Controllers
 
                     if (existing != null)
                     {
+                        updatedCount++;
+                        existing.RepVerNumber = finalNumber;
                         // Update existing
                         existing.Customer = dto.Customer;
                         existing.CustomerName = dto.CustomerName;
@@ -1571,7 +2178,7 @@ namespace Ortho_xact_api.Controllers
                                 MstockDes = dto.MstockDes,
                                 MorderQty = dto.MorderQty,
                                 MshipQty = dto.MshipQty,
-                                RepUsageQty = dto.RepUsageQty,
+                                RepUsageQty = dto.RepUsageQty ?? 0,
                                 RepEntertedDate = DateTime.Now,
                                 RepName = username,
                                 RepVerNumber= finalNumber,
@@ -1579,16 +2186,32 @@ namespace Ortho_xact_api.Controllers
                             };
 
                             _context.DeliveryOrderDetails.Add(newEntity);
+                            insertedCount++;
                        
                     }
                 }
-                await _context.SaveChangesAsync();
+
                
             }
 
             
 
-            return Ok(new { message = "Saved successfully", count = entities.Count });
+            // Persist procedure headers and every order line in the same transaction.
+            await _context.SaveChangesAsync();
+            foreach (var group in groupedBySalesOrder)
+            {
+                var expectedLines = group.Select(x => x.SalesOrderLine).ToHashSet();
+                var savedLines = await _context.DeliveryOrderDetails.AsNoTracking()
+                    .Where(x => x.SalesOrder == group.Key && x.RepVerNumber == finalNumber)
+                    .Select(x => x.Line).ToListAsync();
+                if (!expectedLines.IsSubsetOf(savedLines))
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(500, "The save could not verify every submitted order line. No changes were committed. Please retry.");
+                }
+            }
+            await transaction.CommitAsync();
+            return Ok(new { message = "Saved successfully", count = insertedCount + updatedCount, insertedCount, updatedCount, repVerNumber = finalNumber });
 
         }
 
@@ -1987,6 +2610,40 @@ namespace Ortho_xact_api.Controllers
             return Ok(groupedOrders);
         }
 
+        [Authorize]
+        [HttpPost("patientproceduredetails")]
+        public async Task<IActionResult> GetPatientProcedureDetails([FromBody] SalesOrderRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.SalesOrderNumber))
+                return BadRequest("A sales order number is required.");
+            var salesOrder = request.SalesOrderNumber.Trim();
+            if (long.TryParse(salesOrder, out var numericOrder)) salesOrder = numericOrder.ToString("D15");
+            var procedures = await _context.PatientProcedures.AsNoTracking()
+                .Where(p => p.SalesOrder == salesOrder).OrderBy(p => p.ProcedureNumber).ToListAsync();
+            var lines = await _context.DeliveryOrderDetails.AsNoTracking()
+                .Where(line => line.SalesOrder == salesOrder).ToListAsync();
+            var byLine = lines.ToDictionary(line => line.Line);
+            var result = new List<object>();
+            foreach (var procedure in procedures)
+            {
+                var numbers = System.Text.Json.JsonSerializer.Deserialize<List<int>>(procedure.LineNumbersJson) ?? new List<int>();
+                result.Add(new {
+                    procedure.SalesOrder, procedure.ProcedureNumber, procedure.PatientNumber,
+                    procedure.PatientName, procedure.SurgeonName, procedure.ProcedureDate, procedure.CgSetNumber,
+                    Lines = numbers.OrderBy(n => n).Select(n => {
+                        byLine.TryGetValue(n, out var line);
+                        return new {
+                            SalesOrderLine = n, MissingSavedLine = line == null,
+                            SetsCode = line?.Set, line?.MstockCode, line?.MstockDes, line?.Mwarehouse,
+                            line?.MorderQty, line?.MshipQty, line?.RepUsageQty,
+                            line?.RetQty, line?.Usage, line?.Variance
+                        };
+                    }).ToList()
+                });
+            }
+            return Ok(result);
+        }
+
         [HttpPost("clerkorderdetails")]
         public async Task<IActionResult> GetRepClerkSalesOrders([FromBody] SalesOrderRequest request)
         {
@@ -2015,23 +2672,29 @@ namespace Ortho_xact_api.Controllers
             try
             {
 
+                if (string.IsNullOrWhiteSpace(request.SalesOrderNumber))
+                    return BadRequest("A sales order number is required.");
+                request.SalesOrderNumber = request.SalesOrderNumber.Trim();
                 if (long.TryParse(request.SalesOrderNumber, out long numericOrder))
                 {
                     // Format to 15 digits with leading zeros
                     request.SalesOrderNumber = numericOrder.ToString("D15");
                 }
                 var username = User.FindFirst(ClaimTypes.Name)?.Value;
-                var order = await _sysContext.VwFetchSordetails.Where(o => o.OrderStatus == "4")
+                var order = await _sysContext.VwFetchSordetails.AsNoTracking().Where(o => o.OrderStatus == "4" && o.SalesOrder == request.SalesOrderNumber)
                     .ToListAsync();
                 if (!String.IsNullOrEmpty(request?.SalesOrderNumber))
                     order = order
-                        .Where(o => o.SalesOrder.Contains(request.SalesOrderNumber))
+                        .Where(o => o.SalesOrder == request.SalesOrderNumber)
                         .ToList();
                 var roles = User.FindFirst(ClaimTypes.Role)?.Value;
                 var salesPerson = User.FindFirst(ClaimTypes.GivenName)?.Value;
                 if (roles == "rep")
                 {
-                    order = order.Where(o => o.Status == null || o.Status == "Inprogress").ToList();
+                    // Eligibility is order-wide. Never hide individual kit lines:
+                    // final save validates and persists the entire source order.
+                    if (!order.Any(o => o.Status == null || o.Status == "Inprogress"))
+                        return BadRequest("This order is no longer available for Rep capture.");
 
                 }
                 if (roles == "repclerk")

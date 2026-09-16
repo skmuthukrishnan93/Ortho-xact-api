@@ -100,7 +100,7 @@ namespace Ortho_xact_api.Controllers
             
             MailAddress toAddress;
             // toAddress = new MailAddress("aswini@codex-it.co.za");
-             string fromPassword = "pbpufehdofruzflh";  // Not your Gmail password!
+             string fromPassword = _configuration["EmailDefaults:EmailControllerPassword"] ?? "";  // Not your Gmail password!
              string subject = "Salesorder#"+orderNumber+" need an action";
             //const string body = "Hello, this is a test email sent via Gmail SMTP.";
             var sb = new StringBuilder();

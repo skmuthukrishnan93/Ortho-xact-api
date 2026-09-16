@@ -1,0 +1,445 @@
+[
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.SysproController",
+    "Method": "Login",
+    "RelativePath": "api/syspro/login",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.SysproLoginRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.EmailController",
+    "Method": "EmailSettings",
+    "RelativePath": "Email/emailsettings",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.Models.EmailSetting",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.EmailController",
+    "Method": "GetEmailSettings",
+    "RelativePath": "Email/GetEmailSettings",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.EmailController",
+    "Method": "SendEmailAsync",
+    "RelativePath": "Email/sendMail",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.SalesOrderRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "AdminUpdateOrderStatus",
+    "RelativePath": "Rep/AdminUpdateOrderStatus",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.UpdateOrderStatusRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetRepClerkSalesOrders",
+    "RelativePath": "Rep/clerkorderdetails",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.SalesOrderRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "SaveClerkOrders",
+    "RelativePath": "Rep/clerksave",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "payload",
+        "Type": "Ortho_xact_api.DTO.DeliveryOrderDetailPayload",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "ValidateOrders",
+    "RelativePath": "Rep/clerkvalidate",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "payload",
+        "Type": "Ortho_xact_api.DTO.DeliveryOrderDetailPayload",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GenerateReport",
+    "RelativePath": "Rep/GenerateReport",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.SalesOrderRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetAllUsers",
+    "RelativePath": "Rep/GetAllUsers",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetClerks",
+    "RelativePath": "Rep/GetClerks",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetDashBoard",
+    "RelativePath": "Rep/GetDashBoard",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "period",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetDeliveryNotes",
+    "RelativePath": "Rep/GetDeliveryNotes",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetOrderStatusHistory",
+    "RelativePath": "Rep/GetOrderStatusHistory",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "salesOrderNumber",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetSalesArea",
+    "RelativePath": "Rep/GetSalesArea",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetSalesPerson",
+    "RelativePath": "Rep/GetSalesPerson",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "PostToSyspro",
+    "RelativePath": "Rep/posttosyspro",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "payload",
+        "Type": "Ortho_xact_api.DTO.DeliveryOrderDetailPayload",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "UpdateReRoute",
+    "RelativePath": "Rep/reroute",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "payload",
+        "Type": "Ortho_xact_api.Controllers.RerouteRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetAdminSalesOrders",
+    "RelativePath": "Rep/revieworderdetails",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.SalesOrderRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetRepSalesOrders",
+    "RelativePath": "Rep/saleorderdetails",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.SalesOrderRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "SaveDeliveryOrders",
+    "RelativePath": "Rep/save",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "payload",
+        "Type": "Ortho_xact_api.DTO.DeliveryOrderDetailPayload",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "TestPostToSyspro",
+    "RelativePath": "Rep/testposttosyspro",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "payload",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "UpdateStatus",
+    "RelativePath": "Rep/updatestatus",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "payload",
+        "Type": "Ortho_xact_api.DTO.DeliveryOrderDetailPayload",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.RepController",
+    "Method": "GetPDF",
+    "RelativePath": "Rep/ViewReport",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.SalesOrderRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.UserController",
+    "Method": "CreateUser",
+    "RelativePath": "User/createuser",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.CreateUserRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.UserController",
+    "Method": "GetAllUsers",
+    "RelativePath": "User/GetAllUsers",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.UserController",
+    "Method": "Login",
+    "RelativePath": "User/login",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.LoginRequests",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.UserController",
+    "Method": "SendEmailAsync",
+    "RelativePath": "User/sendMail",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.SalesOrderRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.UserController",
+    "Method": "UpdateUser",
+    "RelativePath": "User/updateuser",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "Ortho_xact_api.DTO.CreateUserRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Ortho_xact_api.Controllers.WeatherForecastController",
+    "Method": "Get",
+    "RelativePath": "WeatherForecast",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[Ortho_xact_api.WeatherForecast, Ortho-xact-api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ],
+    "EndpointName": "GetWeatherForecast"
+  }
+]

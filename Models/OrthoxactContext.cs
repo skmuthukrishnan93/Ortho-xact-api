@@ -26,10 +26,20 @@ public partial class OrthoxactContext : DbContext
     public virtual DbSet<SysproPostLog> SysproPostLogs { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<PatientProcedure> PatientProcedures { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<PatientProcedure>(entity =>
+        {
+            entity.HasKey(e => new { e.SalesOrder, e.ProcedureNumber });
+            entity.Property(e => e.SalesOrder).HasMaxLength(50);
+            entity.Property(e => e.PatientNumber).HasMaxLength(200);
+            entity.Property(e => e.PatientName).HasMaxLength(200);
+            entity.Property(e => e.SurgeonName).HasMaxLength(200);
+            entity.Property(e => e.CgSetNumber).HasMaxLength(200);
+        });
         modelBuilder.Entity<AreaMapping>(entity =>
         {
             entity.ToTable("AreaMapping");

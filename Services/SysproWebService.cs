@@ -18,8 +18,8 @@
                 MaxReceivedMessageSize = 10485760
             };
 
-            var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/utilities.asmx");
-            //var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/utilities.asmx");
+            //var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/utilities.asmx");
+            var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/utilities.asmx");
 
             var client = new utilitiesclassSoapClient(binding, endpoint);
 
@@ -42,8 +42,8 @@
             {
                 MaxReceivedMessageSize = 10485760
             };
-           // var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/utilities.asmx");
-            var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/utilities.asmx");
+            var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/utilities.asmx");
+            //var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/utilities.asmx");
 
             var client = new utilitiesclassSoapClient(binding, endpoint);
 
@@ -66,9 +66,9 @@
             {
                 MaxReceivedMessageSize = 10485760
             };
-           // var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/Transaction.asmx");
+            var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/Transaction.asmx");
 
-            var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/Transaction.asmx");
+            //var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/Transaction.asmx");
 
             var client = new transactionclassSoapClient(binding, endpoint);
 
@@ -89,9 +89,9 @@
             {
                 MaxReceivedMessageSize = 10485760
             };
-            //var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/Query.asmx");
+            var endpoint = new EndpointAddress("http://192.168.23.157/SYSPRO8WebServices/Query.asmx");
 
-            var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/Transaction.asmx");
+            //var endpoint = new EndpointAddress("http://192.168.16.70/SYSPRO8WebServices/Transaction.asmx");
 
             var client = new queryclassSoapClient(binding, endpoint);
 
