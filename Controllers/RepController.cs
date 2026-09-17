@@ -2647,6 +2647,9 @@ namespace Ortho_xact_api.Controllers
         [HttpPost("clerkorderdetails")]
         public async Task<IActionResult> GetRepClerkSalesOrders([FromBody] SalesOrderRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.SalesOrderNumber))
+                return BadRequest("A sales order number is required.");
+            request.SalesOrderNumber = request.SalesOrderNumber.Trim();
             if (long.TryParse(request.SalesOrderNumber, out long numericOrder))
             {
                 // Format to 15 digits with leading zeros
@@ -2654,16 +2657,18 @@ namespace Ortho_xact_api.Controllers
             }
 
 
-            var order = await _sysContext.VwFetchSordetails.Where(o => o.OrderStatus == "4" && o.Status == "RepCompleted" || o.Status == "Send Email To Customer Service" || o.Status == "StoresInProgress" || o.Status == "Completed&ReadyForValidation" || o.Status == "ReadyToPostSyspro")
+            var order = await _sysContext.VwFetchSordetails.AsNoTracking().Where(o => o.OrderStatus == "4" && o.SalesOrder == request.SalesOrderNumber)
                 .ToListAsync();
             if (!String.IsNullOrEmpty(request?.SalesOrderNumber))
                 order = order
-                    .Where(o => o.SalesOrder.Contains(request.SalesOrderNumber))
+                    .Where(o => o.SalesOrder == request.SalesOrderNumber)
                     .ToList();
 
             if (order?.Count == 0)
                 return NotFound("Sales order not found.");
 
+            if (!order.Any(o => o.Status == "RepCompleted" || o.Status == "Send Email To Customer Service" || o.Status == "StoresInProgress" || o.Status == "Completed&ReadyForValidation" || o.Status == "ReadyToPostSyspro"))
+                return BadRequest("This order is not ready for RepClerk review.");
             return Ok(order);
         }
         [HttpPost("saleorderdetails")]

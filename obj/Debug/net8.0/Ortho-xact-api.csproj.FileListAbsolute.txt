@@ -1046,3 +1046,15 @@ E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-line-check\Ortho-xact-api.deps.json
 E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-line-check\Ortho-xact-api.runtimeconfig.json
 E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-line-check\Ortho-xact-api.dll
 E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-line-check\Ortho-xact-api.pdb
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\appsettings.Development.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\appsettings.example.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\appsettings.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Connected Services\ServiceReference1\ConnectedService.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Connected Services\ServiceReference2\ConnectedService.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Connected Services\TransactionReference\ConnectedService.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Ortho-xact-api.staticwebassets.endpoints.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Ortho-xact-api.exe
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Ortho-xact-api.deps.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Ortho-xact-api.runtimeconfig.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Ortho-xact-api.dll
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Ortho-xact-api.pdb
