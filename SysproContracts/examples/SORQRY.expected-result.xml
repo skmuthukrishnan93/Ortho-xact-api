@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthetic APPLICATION result format; not a raw SYSPRO response. -->
+<Result>
+  <SalesOrder>000000000040001</SalesOrder>
+  <Lines>
+    <Line><LineNumber>1</LineNumber><StockCode>KIT-100</StockCode><ParentLine/><ComponentSequence/><Warehouse>WH</Warehouse><Quantity>1</Quantity></Line>
+    <Line><LineNumber>2</LineNumber><StockCode>COMP-001</StockCode><ParentLine>1</ParentLine><ComponentSequence>000010</ComponentSequence><Warehouse>WH</Warehouse><Quantity>2</Quantity></Line>
+  </Lines>
+</Result>

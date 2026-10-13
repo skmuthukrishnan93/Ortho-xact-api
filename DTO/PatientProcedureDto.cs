@@ -10,5 +10,6 @@ public class PatientProcedureDto
     [Required, MaxLength(200)] public string SurgeonName { get; set; } = "";
     public DateOnly ProcedureDate { get; set; }
     [Required, MaxLength(200)] public string CgSetNumber { get; set; } = "";
+    public Dictionary<int, decimal> LineQuantities { get; set; } = new();
     [Required, MinLength(1)] public List<int> LineNumbers { get; set; } = new();
 }

@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PostSalesOrderCancel><Parameters><IgnoreWarnings>N</IgnoreWarnings><ApplyIfEntireDocumentValid>Y</ApplyIfEntireDocumentValid><ValidateOnly>N</ValidateOnly><CancelAttachedComments>N</CancelAttachedComments></Parameters></PostSalesOrderCancel>

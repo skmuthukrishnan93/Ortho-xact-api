@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Ortho-xact-api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cd8095922306e935166ad769d82f478dbe5d54be")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ea6f529455ebe512b0643ed8d5b90fe651e54e1e")]
 [assembly: System.Reflection.AssemblyProductAttribute("Ortho-xact-api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Ortho-xact-api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

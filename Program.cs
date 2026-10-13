@@ -28,6 +28,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services
 builder.Services.AddControllers();
+builder.Services.AddScoped<Ortho_xact_api.Services.ProcedureStagingService>();
+builder.Services.AddScoped<Ortho_xact_api.Services.ProcedurePostingService>();
+builder.Services.AddScoped<Ortho_xact_api.Services.PostingContracts>();
+builder.Services.AddScoped<Ortho_xact_api.Services.ISysproOrderReader, Ortho_xact_api.Services.SysproEntityOrderReader>();
+builder.Services.AddScoped<Ortho_xact_api.Services.IProcedureSysproGateway, Ortho_xact_api.Services.ProcedureSysproGateway>();
+builder.Services.AddHostedService<Ortho_xact_api.Services.PostingFailureNotifier>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>

@@ -1,0 +1,1 @@
+boolean(/SorDetail[count(SalesOrder) = 1 and normalize-space(SalesOrder) != '' and SalesOrderLine/Merchandise])

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SysproWcfClient")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1b8d774b0068369aae487bb4b071591af46b8fb0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ea6f529455ebe512b0643ed8d5b90fe651e54e1e")]
 [assembly: System.Reflection.AssemblyProductAttribute("SysproWcfClient")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SysproWcfClient")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

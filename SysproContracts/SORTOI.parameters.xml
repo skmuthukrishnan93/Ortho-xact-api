@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SalesOrders>
+  <Parameters>
+    <Process>Import</Process>
+    <TypeOfOrder>ORD</TypeOfOrder>
+    <OrderStatus>1</OrderStatus>
+    <MinimumDaysToShip>0</MinimumDaysToShip>
+    <AcceptEarlierShipDate>Y</AcceptEarlierShipDate>
+    <AllowDuplicateOrderNumbers>A</AllowDuplicateOrderNumbers>
+    <CheckForCustomerPoNumbers>N</CheckForCustomerPoNumbers>
+    <AlwaysUsePriceEntered>Y</AlwaysUsePriceEntered>
+    <AllowZeroPrice>Y</AllowZeroPrice>
+    <AllowChangeToZeroPrice>Y</AllowChangeToZeroPrice>
+    <AddStockSalesOrderText>N</AddStockSalesOrderText>
+    <AddDangerousGoodsText>N</AddDangerousGoodsText>
+    <UseStockDescSupplied>Y</UseStockDescSupplied>
+    <IgnoreWarnings>Y</IgnoreWarnings>
+    <AcceptKitOptional>Y</AcceptKitOptional>
+  </Parameters>
+</SalesOrders>

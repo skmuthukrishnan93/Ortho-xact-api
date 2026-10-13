@@ -2,10 +2,12 @@
 {
     public class DeliveryOrderDetailDto
     {
+        public bool Visited { get; set; }
         public string MbomFlag { get; set; } = null!;
         public long Id { get; set; }
         public string SalesOrder { get; set; } = null!;
         public int SalesOrderLine { get; set; }
+        public int ProcedureNumber { get; set; }
         public decimal? RetQty { get; set; }
 
         public decimal? Usage { get; set; }

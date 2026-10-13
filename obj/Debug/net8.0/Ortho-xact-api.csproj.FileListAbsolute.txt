@@ -1058,3 +1058,43 @@ E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Ortho-xact-api.deps.json
 E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Ortho-xact-api.runtimeconfig.json
 E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Ortho-xact-api.dll
 E:\OrthoUI-Procedure\OrthoUI-Procedure\.tmp-clerk-check\Ortho-xact-api.pdb
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\appsettings.Development.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\appsettings.example.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\appsettings.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\Connected Services\ServiceReference1\ConnectedService.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\Connected Services\ServiceReference2\ConnectedService.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\Connected Services\TransactionReference\ConnectedService.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\Ortho-xact-api.staticwebassets.endpoints.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\Ortho-xact-api.deps.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\Ortho-xact-api.runtimeconfig.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\Ortho-xact-api.dll
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\api-check\Ortho-xact-api.pdb
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\appsettings.Development.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\appsettings.example.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\appsettings.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\Connected Services\ServiceReference1\ConnectedService.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\Connected Services\ServiceReference2\ConnectedService.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\Connected Services\TransactionReference\ConnectedService.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\Ortho-xact-api.staticwebassets.endpoints.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\Ortho-xact-api.deps.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\Ortho-xact-api.runtimeconfig.json
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\Ortho-xact-api.dll
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\Ortho-xact-api.pdb
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\SysproContracts\examples\SORQRY.expected-result.xml
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\SysproContracts\README.md
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\SysproContracts\SORQRY.request.xslt
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\SysproContracts\SORQRY.success.xpath
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\SysproContracts\SORTOS.parameters.xml
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\SysproContracts\SORTOS.success.xpath
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\SysproContracts\SORTSU.parameters.xml
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\SysproContracts\SORTOI.parameters.xml
+E:\OrthoUI-Procedure\OrthoUI-Procedure\.artifacts\backend-checks\SysproContracts\SORTOX.parameters.xml
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Debug\net8.0\SysproContracts\examples\SORQRY.expected-result.xml
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Debug\net8.0\SysproContracts\README.md
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Debug\net8.0\SysproContracts\SORQRY.request.xslt
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Debug\net8.0\SysproContracts\SORQRY.success.xpath
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Debug\net8.0\SysproContracts\SORTOI.parameters.xml
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Debug\net8.0\SysproContracts\SORTOS.parameters.xml
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Debug\net8.0\SysproContracts\SORTOS.success.xpath
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Debug\net8.0\SysproContracts\SORTOX.parameters.xml
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Debug\net8.0\SysproContracts\SORTSU.parameters.xml

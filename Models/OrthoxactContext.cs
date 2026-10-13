@@ -29,12 +29,43 @@ public partial class OrthoxactContext : DbContext
     public virtual DbSet<PatientProcedure> PatientProcedures { get; set; }
 
 
+    public DbSet<SorHeaderStage> SorHeaders => Set<SorHeaderStage>();
+    public DbSet<SorDetailStage> SorStageDetails => Set<SorDetailStage>();
+    public DbSet<ProcedurePostAttempt> ProcedurePostAttempts => Set<ProcedurePostAttempt>();
+    public DbSet<ProcedurePostStep> ProcedurePostSteps => Set<ProcedurePostStep>();
+    public DbSet<UnsuccessfulSOMaster> UnsuccessfulSOMasters => Set<UnsuccessfulSOMaster>();
+    public DbSet<UnsuccessfulSODetail> UnsuccessfulSODetails => Set<UnsuccessfulSODetail>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<SorHeaderStage>(e => {
+            e.ToTable("SORHEADER"); e.HasKey(x => new { x.SalesOrder, x.ProcedureNumber });
+            e.Property(x => x.SalesOrder).HasMaxLength(50);
+        });
+        modelBuilder.Entity<SorDetailStage>(e => {
+            e.ToTable("SORDETAIL"); e.HasKey(x => new { x.SalesOrder, x.ProcedureNumber, x.Line });
+            e.Property(x => x.SalesOrder).HasMaxLength(50);
+            e.HasOne<SorHeaderStage>().WithMany().HasForeignKey(x => new { x.SalesOrder, x.ProcedureNumber }).OnDelete(DeleteBehavior.Restrict);
+            foreach (var name in new[] { "DeliveredQty", "OrderQty", "RepUsageQty", "ReturnQty", "UsageQty", "Variance" })
+                e.Property(name).HasPrecision(18, 6);
+        });
+        modelBuilder.Entity<ProcedurePostAttempt>(e => {
+            e.Property(x => x.SalesOrder).HasMaxLength(50);
+            e.HasIndex(x => x.SalesOrder).IsUnique();
+        });
+        modelBuilder.Entity<ProcedurePostStep>().HasOne<ProcedurePostAttempt>().WithMany().HasForeignKey(x => x.AttemptId);
+        modelBuilder.Entity<UnsuccessfulSOMaster>().ToTable("UnsuccessfulSOMaster");
+        modelBuilder.Entity<UnsuccessfulSODetail>(e => {
+            e.ToTable("UnsuccessfulSODetail");
+            e.HasOne<UnsuccessfulSOMaster>().WithMany().HasForeignKey(x => x.MasterId);
+        });
         modelBuilder.Entity<PatientProcedure>(entity =>
         {
             entity.HasKey(e => new { e.SalesOrder, e.ProcedureNumber });
             entity.Property(e => e.SalesOrder).HasMaxLength(50);
+            entity.Property(e => e.ReplacementSalesOrder).HasMaxLength(50);
+            entity.Property(e => e.PostingStatus).HasMaxLength(30);
+            entity.Property(e => e.PostedAt).HasColumnType("datetime2");
             entity.Property(e => e.PatientNumber).HasMaxLength(200);
             entity.Property(e => e.PatientName).HasMaxLength(200);
             entity.Property(e => e.SurgeonName).HasMaxLength(200);

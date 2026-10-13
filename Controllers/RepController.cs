@@ -1,4 +1,4 @@
-﻿using Azure.Core;
+using Azure.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +17,7 @@ using System.Text;
 
 namespace Ortho_xact_api.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
 
@@ -37,171 +37,6 @@ namespace Ortho_xact_api.Controllers
             _configuration = configuration;
             _sysContext = sysContext;
         }
-        [HttpPost("clerksave")]
-        public async Task<IActionResult> SaveClerkOrders([FromBody] DeliveryOrderDetailPayload payload)
-        {
-            var items = payload.Data;
-            if (items == null || !items.Any())
-                return BadRequest("No data received.");
-            var username = User.FindFirst(ClaimTypes.Name)?.Value;
-            // Group by SalesOrder
-            var groupedBySalesOrder = items
-                .GroupBy(dto => dto.SalesOrder);
-
-            var entities = new List<DeliveryOrderDetail>();
-            int count = _context.DeliveryOrderDetails
-   .Select(dd => dd.ClerkVerNumber)
-   .Distinct()
-   .Count();
-            string finalNumber = "Clerk-" + count.ToString("D7");
-
-            foreach (var group in groupedBySalesOrder)
-            {
-                var group1 = group.Where(c => c.MbomFlag != "P");
-                bool allHaveQty = group1.All(x => x.RetQty.HasValue);
-                bool anyHaveQty = group1.Any(x => x.RetQty.HasValue);
-
-                string status = allHaveQty ? "Completed&ReadyForValidation" :
-                                anyHaveQty ? "StoresInProgress" : null;
-                status = "Completed&ReadyForValidation";
-
-                foreach (var dto in group)
-                {
-                    var existing = await _context.DeliveryOrderDetails
-        .FirstOrDefaultAsync(x => x.SalesOrder == dto.SalesOrder && x.Line == dto.SalesOrderLine);
-
-                    if (existing != null)
-                    {
-                        if(dto.RetQty==null)
-                        {
-                            dto.RetQty = dto.MshipQty;
-                        }
-                        if(existing.RepUsageQty==null)
-                        {
-                            existing.RepUsageQty = 0;
-                        }
-                        // Update existing
-                       existing.RetQty= dto.RetQty;
-                        existing.Status = status;
-                        existing.Usage = existing.MshipQty - dto.RetQty;
-                        existing.Variance = existing.RepUsageQty - existing.Usage;
-                        existing.ClerkDate =DateTime.Now;
-                        existing.ClerkName = username;
-                        existing.ClerkVerNumber = finalNumber;
-                    }
-                    
-                }
-            }
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Saved successfully", count = entities.Count });
-
-        }
-        [HttpPost("clerkvalidate")]
-        public async Task<IActionResult> ValidateOrders([FromBody] DeliveryOrderDetailPayload payload)
-        {
-            var items = payload.Data;
-            if (items == null || !items.Any())
-                return BadRequest("No data received.");
-            var username = User.FindFirst(ClaimTypes.Name)?.Value;
-            // Group by SalesOrder
-            var groupedBySalesOrder = items
-                .GroupBy(dto => dto.SalesOrder);
-
-            var entities = new List<DeliveryOrderDetail>();
-            int count = _context.DeliveryOrderDetails
-   .Select(dd => dd.ClerkVerNumber)
-   .Distinct()
-   .Count();
-            string finalNumber = "Clerk-" + count.ToString("D7");
-
-            foreach (var group in groupedBySalesOrder)
-            {
-                var group1 = group.Where(c => c.MbomFlag != "P");
-               // bool allHaveQty = group1.All(x => x.RepUsageQty.HasValue);
-                bool anyHaveQty = group1.Any(x => x.Variance!=0);
-                //if (!allHaveQty)
-                //{
-                //    return BadRequest("Validation Failed");
-                //}
-
-                string status = "ReadyToPostSyspro";
-                if(anyHaveQty)
-                {                     status = "Send Email To Customer Service";
-                }
-
-                foreach (var dto in group)
-                {
-                    var existing = await _context.DeliveryOrderDetails
-        .FirstOrDefaultAsync(x => x.SalesOrder == dto.SalesOrder && x.Line == dto.SalesOrderLine);
-
-                    if (existing != null)
-                    {
-                        if(existing.RepUsageQty==null )
-                        {
-                            existing.RepUsageQty = 0;
-                        }
-                        existing.Status = status;
-                        
-                    }
-
-                }
-            }
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Saved successfully", count = entities.Count });
-
-        }
-
-        [HttpPost("posttosyspro")]
-        public async Task<IActionResult> PostToSyspro([FromBody] DeliveryOrderDetailPayload payload)
-        {
-            try
-            {
-                var items = payload.Data;
-                if (items == null || !items.Any())
-                    return BadRequest("No data received.");
-                var username = User.FindFirst(ClaimTypes.Name)?.Value;
-                // Group by SalesOrder
-                var groupedBySalesOrder = items
-                    .GroupBy(dto => dto.SalesOrder);
-
-                SorMaster? existingMaster;
-                List<SorDetail> existingOrderDetails;
-                (bool flowControl, IActionResult value) = await UpdateSormaster(username, groupedBySalesOrder);
-                if (!flowControl)
-                {
-                    return value;
-                }
-                //var syspro = new SysproWebService();
-                //var responseXml = await syspro.LoginAsync("CONS29", "", "UAT");
-                //var responseXml = await syspro.LoginAsync("CONS29", "", "OXZ");
-                //var sessionId = responseXml.Body.LogonResult;
-                //return Ok(new { response = responseXml.Body.LogonResult });
-                // var sessionId = await LoginAsync("EDU", "ADMIN", "1234");
-
-
-                //string xmlIn = GenerateSortoiXml(existingMaster, existingOrderDetails);
-                //string parameters = GenerateSortoiParametersXml();
-                //var response = await syspro.Transaction(sessionId, "SORTSU", parameters, xmlIn);
-                //var response1 = await syspro.LogoutAsync(sessionId);
-
-                return Ok(new { message = "Saved successfully", count = 0 });
-            }
-            catch (Exception ex)
-            {
-                // 🔥 TEMP: return full error
-                return StatusCode(500, new
-                {
-                    message = ex.Message,
-                    stackTrace = ex.StackTrace,
-                    inner = ex.InnerException?.Message
-    });
-            }
-        }
-
         private async Task<(bool flowControl, IActionResult value)> UpdateSormaster(string? username, IEnumerable<IGrouping<string, DeliveryOrderDetailDto>> groupedBySalesOrder)
         {
            var existingMaster = new SorMaster();
@@ -327,7 +162,7 @@ namespace Ortho_xact_api.Controllers
             return (flowControl: true, value: null);
         }
 
-        [HttpPost("posttosyspro1")]
+        [NonAction] // Retired: all warehouse posting uses the durable close-and-replace workflow.
         public async Task<IActionResult> SysproPost([FromBody] DeliveryOrderDetailPayload payload)
     {
         try
@@ -667,7 +502,7 @@ namespace Ortho_xact_api.Controllers
             Document.Append("</PostChangeSalesOrderKitComp>");
             return Document.ToString();
         }
-        [HttpPost("posttosyspro2")]
+        [NonAction] // Retired: all warehouse posting uses the durable close-and-replace workflow.
         public async Task<IActionResult> SysproPostBusinessObject(
     [FromBody] DeliveryOrderDetailPayload payload)
         {
@@ -806,7 +641,7 @@ namespace Ortho_xact_api.Controllers
                                 BuildSortoxDocumentXml(
                                     salesOrder,
                                     batchDetails,
-                                    "02"
+                                    orderGroup.Where(x => x.Usage == 0).Select(x => (decimal)x.SalesOrderLine).ToHashSet()
                                 );
 
                             var cancelResponse =
@@ -1114,7 +949,7 @@ namespace Ortho_xact_api.Controllers
                 });
             }
         }
-        [HttpPost("posttosyspro3")]
+        [NonAction] // Retired: all warehouse posting uses the durable close-and-replace workflow.
         public async Task<IActionResult> SysproPostBusinessObject2(
     [FromBody] DeliveryOrderDetailPayload payload)
         {
@@ -1254,7 +1089,7 @@ namespace Ortho_xact_api.Controllers
                                 BuildSortoxDocumentXml(
                                     salesOrder,
                                     batchDetails,
-                                    "02"
+                                    orderGroup.Where(x => x.Usage == 0).Select(x => (decimal)x.SalesOrderLine).ToHashSet()
                                 );
 
                             var cancelResponse =
@@ -1544,6 +1379,7 @@ namespace Ortho_xact_api.Controllers
             }
         }
 
+        [Authorize(Roles = "admin")]
         [HttpGet("sysprologs")]
         public async Task<IActionResult> GetSysproLogs()
         {
@@ -1592,7 +1428,7 @@ namespace Ortho_xact_api.Controllers
         private string BuildSortoxDocumentXml(
     string salesOrder,
     List<SorDetail> lines,
-    string cancelReasonCode)
+    HashSet<decimal> completeLines)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -1613,10 +1449,10 @@ namespace Ortho_xact_api.Controllers
                     $@"      <SalesOrderLine>{line.SalesOrderLine}</SalesOrderLine>");
 
                 sb.AppendLine(
-                    @"      <MarkLineComplete>N</MarkLineComplete>");
+                    $@"      <MarkLineComplete>{(completeLines.Contains(line.SalesOrderLine) ? "Y" : "N")}</MarkLineComplete>");
 
                 sb.AppendLine(
-                    $@"      <CancelReasonCode>02</CancelReasonCode>");
+                    completeLines.Contains(line.SalesOrderLine) ? @"      <CancelReasonCode/>" : @"      <CancelReasonCode>02</CancelReasonCode>");
 
                 sb.AppendLine(@"      <eSignature/>");
 
@@ -1846,7 +1682,7 @@ namespace Ortho_xact_api.Controllers
             Console.WriteLine(Document.ToString());
             return Document.ToString();
         }
-        [HttpPost("testposttosyspro")]
+        [NonAction] // Retired: all warehouse posting uses the durable close-and-replace workflow.
         public async Task<IActionResult> TestPostToSyspro([FromBody] string payload)
         {
             
@@ -2046,6 +1882,34 @@ namespace Ortho_xact_api.Controllers
         [Authorize]
         public async Task<IActionResult> SaveDeliveryOrders([FromBody] DeliveryOrderDetailPayload payload)
         {
+            try { return await SaveDeliveryOrdersCore(payload); }
+            catch (Exception ex)
+            {
+                var reference = HttpContext.TraceIdentifier;
+                var stage = HttpContext.Items["RepSaveStage"]?.ToString() ?? "start save";
+                HttpContext.RequestServices.GetRequiredService<ILogger<RepController>>()
+                    .LogError(ex, "Rep/save failed at {Stage}. Reference {Reference}", stage, reference);
+                var sql = ex;
+                while (sql.InnerException != null && sql is not Microsoft.Data.SqlClient.SqlException)
+                    sql = sql.InnerException;
+                var message = sql is Microsoft.Data.SqlClient.SqlException databaseError
+                    ? databaseError.Number switch {
+                        207 => "The database schema does not match this API build. Check LineQuantitiesJson and apply migration 003 to the API application database.",
+                        2601 or 2627 => "A duplicate database key prevented saving. Verify SORDETAIL uses the key SalesOrder, ProcedureNumber, Line.",
+                        547 => "A database relationship or quantity constraint prevented saving. Check the server log for the affected constraint.",
+                        -2 => "The database operation timed out. Check the API server log before retrying.",
+                        _ => "A database error prevented saving. Check the API server log."
+                    }
+                    : "The save could not complete. Check the API server log for the cause.";
+                // Plain text is compatible with the currently deployed capture screen.
+                return new ContentResult { StatusCode = 500, ContentType = "text/plain",
+                    Content = message + " Stage: " + stage + ". Reference: " + reference };
+            }
+        }
+
+        private async Task<IActionResult> SaveDeliveryOrdersCore(DeliveryOrderDetailPayload payload)
+        {
+            HttpContext.Items["RepSaveStage"] = "validate capture";
             var items = payload.Data;
             if (items == null || !items.Any())
                 return BadRequest("No data received.");
@@ -2058,6 +1922,7 @@ namespace Ortho_xact_api.Controllers
                     return BadRequest("Capture procedures for one sales order at a time.");
                 var salesOrder = items[0].SalesOrder.Trim();
                 foreach (var item in items) item.SalesOrder = salesOrder;
+                HttpContext.Items["RepSaveStage"] = "read source order";
                 var source = await _sysContext.VwFetchSordetails
                     .Where(x => x.SalesOrder == salesOrder && x.OrderStatus == "4")
                     .OrderBy(x => x.SalesOrderLine).ToListAsync();
@@ -2079,17 +1944,31 @@ namespace Ortho_xact_api.Controllers
                         string.IsNullOrWhiteSpace(x.PatientNumber) || string.IsNullOrWhiteSpace(x.PatientName) ||
                         string.IsNullOrWhiteSpace(x.SurgeonName) || string.IsNullOrWhiteSpace(x.CgSetNumber)))
                     return BadRequest("Complete all patient details and assign kits to each sequential procedure.");
-                var assigned = procedures.SelectMany(x => x.LineNumbers).ToList();
-                if (assigned.Count != items.Count || assigned.Distinct().Count() != assigned.Count ||
-                    !assigned.ToHashSet().SetEquals(items.Select(x => x.SalesOrderLine)))
-                    return BadRequest("Assign every order line to exactly one procedure.");
+                if (procedures.Any(p => p.LineNumbers.Count != sourceLines.Count ||
+                    !p.LineNumbers.ToHashSet().SetEquals(sourceLines) ||
+                    p.LineQuantities.Count != sourceLines.Count ||
+                    !p.LineQuantities.Keys.ToHashSet().SetEquals(sourceLines) ||
+                    p.LineQuantities.Values.Any(q => q < 0)))
+                    return BadRequest("Every procedure must include all original order lines with independent non-negative quantities.");
+                foreach (var item in items)
+                    item.RepUsageQty = procedures.Sum(p => p.LineQuantities[item.SalesOrderLine]);
+                try
+                {
+                    foreach (var procedure in procedures)
+                        ProcedureStagingService.RequireProcedureParent(procedure.ProcedureNumber,
+                            source.Where(x => procedure.LineNumbers.Contains((int)x.SalesOrderLine)).Select(x => x.MbomFlag));
+                }
+                catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
                 foreach (var line in source)
                 {
                     var item = items.Single(x => x.SalesOrderLine == (int)line.SalesOrderLine);
-                    if (line.MbomFlag != "P" && (!item.RepUsageQty.HasValue || item.RepUsageQty < 0 || item.RepUsageQty > line.MshipQty))
-                        return BadRequest("Usage must be between zero and the delivered quantity.");
+                    if (line.MbomFlag != "P" && (!item.RepUsageQty.HasValue || item.RepUsageQty < 0))
+                        return BadRequest("Usage must be non-negative.");
                 }
+                HttpContext.Items["RepSaveStage"] = "read saved procedures";
                 var previous = await _context.PatientProcedures.Where(x => x.SalesOrder == salesOrder).ToListAsync();
+                if (previous.Any(x => x.PostingAttemptId.HasValue || !string.IsNullOrWhiteSpace(x.ReplacementSalesOrder)))
+                    return Conflict("This order has procedure posting records. An administrator must review it before changes; its reporting links cannot be overwritten.");
                 // Update matching records in place so a retry cannot introduce duplicate keys.
                 _context.PatientProcedures.RemoveRange(previous.Where(x => x.ProcedureNumber > procedures.Count));
                 foreach (var procedure in procedures)
@@ -2106,6 +1985,7 @@ namespace Ortho_xact_api.Controllers
                     entity.ProcedureDate = procedure.ProcedureDate;
                     entity.CgSetNumber = procedure.CgSetNumber.Trim();
                     entity.LineNumbersJson = System.Text.Json.JsonSerializer.Serialize(procedure.LineNumbers);
+                    entity.LineQuantitiesJson = System.Text.Json.JsonSerializer.Serialize(procedure.LineQuantities);
                 }
             }
             var username = User.FindFirst(ClaimTypes.Name)?.Value;
@@ -2117,9 +1997,16 @@ namespace Ortho_xact_api.Controllers
             var groupedBySalesOrder = items
                 .GroupBy(dto => dto.SalesOrder);
 
+            HttpContext.Items["RepSaveStage"] = "load source snapshots before transaction";
+            var staging = new ProcedureStagingService(_context, _sysContext);
+            var snapshots = new Dictionary<string, ProcedureStagingService.SourceSnapshot>();
+            foreach (var orderGroup in groupedBySalesOrder)
+                snapshots.Add(orderGroup.Key, await staging.LoadSource(orderGroup.Key));
+            HttpContext.Items["RepSaveStage"] = "begin application transaction";
             var insertedCount = 0;
             var updatedCount = 0;
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            HttpContext.Items["RepSaveStage"] = "allocate rep reference";
             int count = _context.DeliveryOrderDetails
     .Select(dd => dd.RepVerNumber)
     .Distinct()
@@ -2135,10 +2022,11 @@ namespace Ortho_xact_api.Controllers
                                 anyHaveQty ? "Inprogress" : null;
                 status = "RepCompleted";
 
+                HttpContext.Items["RepSaveStage"] = "load saved order lines";
+                var existingLines = await _context.DeliveryOrderDetails.Where(x => x.SalesOrder == group.Key).ToListAsync();
                 foreach (var dto in group)
                 {
-                    var existing = await _context.DeliveryOrderDetails
-        .FirstOrDefaultAsync(x => x.SalesOrder == dto.SalesOrder && x.Line == dto.SalesOrderLine);
+                    var existing = existingLines.SingleOrDefault(x => x.Line == dto.SalesOrderLine);
 
                     if (existing != null)
                     {
@@ -2196,6 +2084,7 @@ namespace Ortho_xact_api.Controllers
 
             
 
+            HttpContext.Items["RepSaveStage"] = "save procedure headers and usage";
             // Persist procedure headers and every order line in the same transaction.
             await _context.SaveChangesAsync();
             foreach (var group in groupedBySalesOrder)
@@ -2210,116 +2099,44 @@ namespace Ortho_xact_api.Controllers
                     return StatusCode(500, "The save could not verify every submitted order line. No changes were committed. Please retry.");
                 }
             }
+            HttpContext.Items["RepSaveStage"] = "save application staging";
+            foreach (var orderGroup in groupedBySalesOrder)
+                await staging.Capture(orderGroup.Key, snapshots[orderGroup.Key]);
+            HttpContext.Items["RepSaveStage"] = "commit application transaction";
             await transaction.CommitAsync();
             return Ok(new { message = "Saved successfully", count = insertedCount + updatedCount, insertedCount, updatedCount, repVerNumber = finalNumber });
 
         }
 
+        [Authorize(Roles = "admin")]
         [HttpPost("updatestatus")]
         public async Task<IActionResult> UpdateStatus([FromBody] DeliveryOrderDetailPayload payload)
         {
-            var items = payload.Data;
-            if (items == null || !items.Any())
-                return BadRequest("No data received.");
-            var username = User.FindFirst(ClaimTypes.Name)?.Value;
-
-            // Group by SalesOrder
-            var groupedBySalesOrder = items
-                .GroupBy(dto => dto.SalesOrder);
-
-            
-            foreach (var group in groupedBySalesOrder)
-            {
-                
-
-                string status = "StoresInProgress";
-
-                foreach (var dto in group)
-                {
-                    var existing = await _context.DeliveryOrderDetails
-        .FirstOrDefaultAsync(x => x.SalesOrder == dto.SalesOrder && x.Line == dto.SalesOrderLine);
-
-                    if (existing != null)
-                    {
-                        // Update existing
-                       
-                        existing.Status = status;
-                       
-                    }
-                   
-                }
-                await _context.SaveChangesAsync();
-
+            if (payload.Data == null || payload.Data.Count == 0 ||
+                payload.Data.Select(x => ProcedureStagingService.Normalize(x.SalesOrder)).Distinct().Count() != 1)
+                return BadRequest(new { message = "Select one sales order for correction." });
+            try {
+                await new ProcedureStagingService(_context, _sysContext).ResetForCorrection(
+                    ProcedureStagingService.Normalize(payload.Data[0].SalesOrder), true);
+                return Ok(new { message = "Order returned for warehouse correction." });
             }
-
-
-
-            return Ok(new { message = "Saved successfully", count = 0 });
-
+            catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
         }
 
+        [Authorize(Roles = "admin")]
         [HttpPost("AdminUpdateOrderStatus")]
         public async Task<IActionResult> AdminUpdateOrderStatus([FromBody] UpdateOrderStatusRequest request)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(request.SalesOrderNumber))
-                    return BadRequest("Sales Order Number is required.");
-
-                if (string.IsNullOrEmpty(request.CorrectionType))
-                    return BadRequest("Correction Type is required.");
-
-                var username = User.FindFirst(ClaimTypes.Name)?.Value;
-
-                // Format the sales order number to 15 digits with leading zeros
-                var salesOrderNumber = request.SalesOrderNumber;
-                if (long.TryParse(salesOrderNumber, out long numericOrder))
-                {
-                    salesOrderNumber = numericOrder.ToString("D15");
-                }
-
-                // Get the existing order details
-                var existingOrders = await _context.DeliveryOrderDetails
-                    .Where(x => x.SalesOrder == salesOrderNumber)
-                    .ToListAsync();
-
-                if (!existingOrders.Any())
-                {
-                    
-
-                }
-                else
-                {
-                    // Update existing orders
-                    string newStatus = request.CorrectionType == "repclerk" ? "StoresInProgress" : "Inprogress";
-
-
-                    foreach (var order in existingOrders)
-                    {
-                        order.Status = newStatus;
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-
-                string routeType = request.CorrectionType == "repclerk" ? "Rep Clerk" : "Rep";
-                return Ok(new
-                {
-                    message = $"Order {request.SalesOrderNumber} has been updated",
-                    salesOrder = request.SalesOrderNumber,
-                    correctionType = request.CorrectionType,
-                    routedTo = ""
-                });
+            if (string.IsNullOrWhiteSpace(request.SalesOrderNumber) ||
+                (request.CorrectionType != "repclerk" && request.CorrectionType != "rep"))
+                return BadRequest(new { message = "Select an order and a valid correction type." });
+            try {
+                await new ProcedureStagingService(_context, _sysContext).ResetForCorrection(
+                    ProcedureStagingService.Normalize(request.SalesOrderNumber), request.CorrectionType == "repclerk");
+                return Ok(new { message = $"Order {request.SalesOrderNumber} has been updated",
+                    salesOrder = request.SalesOrderNumber, correctionType = request.CorrectionType });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    message = ex.Message,
-                    stackTrace = ex.StackTrace,
-                    inner = ex.InnerException?.Message
-                });
-            }
+            catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
         }
 
         [HttpGet("GetOrderStatusHistory")]
@@ -2610,67 +2427,6 @@ namespace Ortho_xact_api.Controllers
             return Ok(groupedOrders);
         }
 
-        [Authorize]
-        [HttpPost("patientproceduredetails")]
-        public async Task<IActionResult> GetPatientProcedureDetails([FromBody] SalesOrderRequest request)
-        {
-            if (string.IsNullOrWhiteSpace(request.SalesOrderNumber))
-                return BadRequest("A sales order number is required.");
-            var salesOrder = request.SalesOrderNumber.Trim();
-            if (long.TryParse(salesOrder, out var numericOrder)) salesOrder = numericOrder.ToString("D15");
-            var procedures = await _context.PatientProcedures.AsNoTracking()
-                .Where(p => p.SalesOrder == salesOrder).OrderBy(p => p.ProcedureNumber).ToListAsync();
-            var lines = await _context.DeliveryOrderDetails.AsNoTracking()
-                .Where(line => line.SalesOrder == salesOrder).ToListAsync();
-            var byLine = lines.ToDictionary(line => line.Line);
-            var result = new List<object>();
-            foreach (var procedure in procedures)
-            {
-                var numbers = System.Text.Json.JsonSerializer.Deserialize<List<int>>(procedure.LineNumbersJson) ?? new List<int>();
-                result.Add(new {
-                    procedure.SalesOrder, procedure.ProcedureNumber, procedure.PatientNumber,
-                    procedure.PatientName, procedure.SurgeonName, procedure.ProcedureDate, procedure.CgSetNumber,
-                    Lines = numbers.OrderBy(n => n).Select(n => {
-                        byLine.TryGetValue(n, out var line);
-                        return new {
-                            SalesOrderLine = n, MissingSavedLine = line == null,
-                            SetsCode = line?.Set, line?.MstockCode, line?.MstockDes, line?.Mwarehouse,
-                            line?.MorderQty, line?.MshipQty, line?.RepUsageQty,
-                            line?.RetQty, line?.Usage, line?.Variance
-                        };
-                    }).ToList()
-                });
-            }
-            return Ok(result);
-        }
-
-        [HttpPost("clerkorderdetails")]
-        public async Task<IActionResult> GetRepClerkSalesOrders([FromBody] SalesOrderRequest request)
-        {
-            if (string.IsNullOrWhiteSpace(request.SalesOrderNumber))
-                return BadRequest("A sales order number is required.");
-            request.SalesOrderNumber = request.SalesOrderNumber.Trim();
-            if (long.TryParse(request.SalesOrderNumber, out long numericOrder))
-            {
-                // Format to 15 digits with leading zeros
-                request.SalesOrderNumber = numericOrder.ToString("D15");
-            }
-
-
-            var order = await _sysContext.VwFetchSordetails.AsNoTracking().Where(o => o.OrderStatus == "4" && o.SalesOrder == request.SalesOrderNumber)
-                .ToListAsync();
-            if (!String.IsNullOrEmpty(request?.SalesOrderNumber))
-                order = order
-                    .Where(o => o.SalesOrder == request.SalesOrderNumber)
-                    .ToList();
-
-            if (order?.Count == 0)
-                return NotFound("Sales order not found.");
-
-            if (!order.Any(o => o.Status == "RepCompleted" || o.Status == "Send Email To Customer Service" || o.Status == "StoresInProgress" || o.Status == "Completed&ReadyForValidation" || o.Status == "ReadyToPostSyspro"))
-                return BadRequest("This order is not ready for RepClerk review.");
-            return Ok(order);
-        }
         [HttpPost("saleorderdetails")]
         public async Task<IActionResult> GetRepSalesOrders([FromBody] SalesOrderRequest request)
         {

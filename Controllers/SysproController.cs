@@ -1,11 +1,13 @@
 ﻿
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Ortho_xact_api.DTO;
 using Ortho_xact_api.Services;
 
 namespace Ortho_xact_api.Controllers
 {
+    [Authorize(Roles = "admin")]
     [ApiController]
     [Route("api/syspro")]
     public class SysproController : ControllerBase

@@ -1,0 +1,11 @@
+boolean(
+  /postsororderstatus[
+    count(Item) = 1
+    and count(Item/Order) = 1
+    and normalize-space(Item/Order/SalesOrder) != ''
+    and normalize-space(Item/Order/NewOrderStatus) = '8'
+    and count(StatusOfItems) = 1
+    and number(StatusOfItems/ItemsProcessed) = 1
+    and number(StatusOfItems/ItemsInvalid) = 0
+  ]
+)
