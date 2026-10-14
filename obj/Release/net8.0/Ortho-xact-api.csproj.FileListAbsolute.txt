@@ -1009,3 +1009,5 @@ E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Release\net8.0\SysproC
 E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Release\net8.0\SysproContracts\SORTOI.parameters.xml
 E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Release\net8.0\SysproContracts\SORTOX.parameters.xml
 E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Release\net8.0\Ortho-xact-api.exe
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Release\net8.0\SysproContracts\COMTFM.parameters.xml
+E:\OrthoUI-Procedure\OrthoUI-Procedure\Ortho-xact-api\bin\Release\net8.0\SysproContracts\examples\COMTFM.success.xml

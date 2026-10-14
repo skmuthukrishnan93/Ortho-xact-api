@@ -26,20 +26,21 @@ public class PostingContracts(IConfiguration config)
             .Where(name => !File.Exists(Path.Combine(dir, name))).ToList();
         if (missing.Count != 0)
             throw new InvalidOperationException("Missing SYSPRO mapping files: " + string.Join(", ", missing) + ". No order has been changed.");
-        foreach (var step in new[] { "SORTOS", "SORTOI", "SORTSU", "SORTOX" })
+        foreach (var step in new[] { "SORTOS", "SORTOI", "SORTSU", "SORTOX", "COMTFM" })
         {
-            var builtIn = step == "SORTOS" || step == "SORTSU" || step == "SORTOI" || step == "SORTOX";
+            var builtIn = step == "SORTOS" || step == "SORTSU" || step == "SORTOI" || step == "SORTOX" || step == "COMTFM";
             var requestPath = Path.Combine(dir, step + ".request.xslt");
             if (!builtIn || File.Exists(requestPath)) Load(step + ".request", requestPath);
             {
                 var parameterPath = Path.Combine(dir, step + ".parameters.xml");
-                var xml = builtIn && !File.Exists(parameterPath) ? (step == "SORTOI" ? SortoiMapping.Parameters() : PostingXml.Parameters(step)).ToString() : File.ReadAllText(parameterPath);
+                var xml = builtIn && !File.Exists(parameterPath) ? (step == "SORTOI" ? SortoiMapping.Parameters() : step == "COMTFM" ? CustomFormMapping.Parameters() : PostingXml.Parameters(step)).ToString() : File.ReadAllText(parameterPath);
                 ValidateParameters(step, Parse(xml));
                 parameters[step] = xml;
             }
             // SORTSU acknowledgement is bypassed by request; final entity readback verifies the outcome.
             if (step == "SORTSU" || step == "SORTOX") continue;
             var successPath = Path.Combine(dir, step + ".success.xpath");
+            if (step == "COMTFM" && !File.Exists(successPath)) continue;
             if (step == "SORTOI" && !File.Exists(successPath)) continue;
             var expression = File.ReadAllText(successPath).Trim();
             XPathExpression.Compile(expression);
@@ -54,6 +55,9 @@ public class PostingContracts(IConfiguration config)
         string? Value(string name) => xml.Descendants(name).SingleOrDefault()?.Value.Trim();
         if (step == "SORTOI" && !string.Equals(Value("Process"), "Import", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("SORTOI must use Process Import, not a validation-only operation.");
+        if (step == "COMTFM" && (xml.Name.LocalName != "PostCustomForm" || Value("Function") != "U" ||
+            Value("ValidateOnly") != "N" || Value("ApplyIfEntireDocumentValid") != "N"))
+            throw new InvalidOperationException("COMTFM must update using Function U, ValidateOnly N and ApplyIfEntireDocumentValid N.");
         if ((step == "SORTOS" || step == "SORTSU" || step == "SORTOX") &&
             (Value("ValidateOnly") != "N" || Value("ApplyIfEntireDocumentValid") != "Y"))
             throw new InvalidOperationException(step + " must post atomically with ValidateOnly N and ApplyIfEntireDocumentValid Y.");
@@ -74,8 +78,16 @@ public class PostingContracts(IConfiguration config)
                 "SORTOS" => PostingXml.ReleaseOriginalForInvoicing(input),
                 "SORTSU" => PostingXml.ChangeComponents(input),
                 "SORTOX" => PostingXml.CompleteZeroComponents(input),
+                "COMTFM" => CustomFormMapping.Request(input, config),
                 _ => throw new InvalidOperationException("No request mapping for " + step)
             };
+        if (step == "COMTFM")
+        {
+            var expected = CustomFormMapping.Request(input, config);
+            if (output.Name.LocalName != "PostCustomForm" || output.Elements("Item").Count() != 1 ||
+                !XNode.DeepEquals(expected.Element("Item"), output.Element("Item")))
+                throw new InvalidOperationException("COMTFM mapping must match the replacement order, blank invoice key and saved procedure fields.");
+        }
         if (step == "SORTOI")
         {
             var expected = input.Element("Lines")?.Elements("Line")
@@ -121,6 +133,8 @@ public class PostingContracts(IConfiguration config)
     public void CheckSuccess(string step, XElement output)
     {
         CheckErrors(output);
+        if (step == "COMTFM") CustomFormMapping.ValidateResponse(output);
+        if (step == "COMTFM" && !success.ContainsKey(step)) { CustomFormMapping.CheckSuccess(output); return; }
         if (step == "SORTSU")
         {
             if (!output.Name.LocalName.Equals("postchangesalesorderkitcomp", StringComparison.OrdinalIgnoreCase))
@@ -153,7 +167,7 @@ public class PostingContracts(IConfiguration config)
         var descriptions = nodes.Where(x => x.Name.LocalName.Equals("ErrorDescription", StringComparison.OrdinalIgnoreCase) ||
             x.Name.LocalName.Equals("ErrorMessage", StringComparison.OrdinalIgnoreCase))
             .Select(x => x.Value.Trim()).Where(x => x.Length > 0).ToList();
-        var invalid = nodes.Any(x => new[] { "ItemsInvalid", "OrdersInvalid", "LinesInvalid", "ErrorCount", "ItemsRejectedWithWarnings" }
+        var invalid = nodes.Any(x => new[] { "ItemsInvalid", "RecordsInvalid", "OrdersInvalid", "LinesInvalid", "ErrorCount", "ItemsRejectedWithWarnings" }
             .Contains(x.Name.LocalName, StringComparer.OrdinalIgnoreCase) &&
             (!int.TryParse(x.Value.Trim(), out var count) || count != 0));
         if (descriptions.Count > 0 || invalid)

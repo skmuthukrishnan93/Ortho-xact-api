@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<PostCustomForm Language="05" Language2="EN" CssStyle="" DecFormat="1" DateFormat="01" Role="01" Version="8.0.008" OperatorPrimaryRole="028">
+  <item>
+    <key>
+      <formtype>ORD</formtype>
+      <keyfields>
+        <SalesOrder>00057224</SalesOrder>
+        <InvoiceNumber />
+      </keyfields>
+      <keyvalue>000000000057224</keyvalue>
+    </key>
+  </item>
+  <StatusOfItems>
+    <RecordsRead>1</RecordsRead>
+    <RecordsInvalid>0</RecordsInvalid>
+    <RecordsWritten>1</RecordsWritten>
+  </StatusOfItems>
+</PostCustomForm>

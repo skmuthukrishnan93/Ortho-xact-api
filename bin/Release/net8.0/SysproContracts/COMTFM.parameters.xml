@@ -1,0 +1,7 @@
+<PostCustomForm xmlns:xsd="http://www.w3.org/2001/XMLSchema-instance" xsd:noNamespaceSchemaLocation="COMTFM.XSD">
+  <Parameters>
+    <Function>U</Function>
+    <ValidateOnly>N</ValidateOnly>
+    <ApplyIfEntireDocumentValid>N</ApplyIfEntireDocumentValid>
+  </Parameters>
+</PostCustomForm>

@@ -8,7 +8,8 @@ using System.Xml.Linq;
 namespace Ortho_xact_api.Services;
 
 public class ProcedurePostingService(OrthoxactContext db, IProcedureSysproGateway gateway,
-    PostingContracts contracts, ISysproOrderReader orderReader, ILogger<ProcedurePostingService> logger)
+    PostingContracts contracts, ISysproOrderReader orderReader,
+    ILogger<ProcedurePostingService> logger)
 {
     public async Task<ProcedurePostingResult> Post(string order, string user)
     {
@@ -33,6 +34,7 @@ public class ProcedurePostingService(OrthoxactContext db, IProcedureSysproGatewa
                 procedures.Any(p => p.PostingAttemptId.HasValue || !string.IsNullOrWhiteSpace(p.ReplacementSalesOrder)))
                 throw new InvalidOperationException("Procedure reporting records are missing or already linked to a posting attempt. An administrator must review this order.");
             ValidateRelationships(lines);
+            foreach (var header in headers) CustomFormMapping.Validate(header);
             foreach (var group in lines.GroupBy(x => x.ProcedureNumber))
                 ProcedureStagingService.RequireProcedureParent(group.Key, group.Select(x => x.KitFlag));
             attempt = new ProcedurePostAttempt { Id = Guid.NewGuid(), SalesOrder = order, CreatedAt = DateTime.UtcNow,
@@ -74,6 +76,7 @@ public class ProcedurePostingService(OrthoxactContext db, IProcedureSysproGatewa
                 ValidateImportRequest(contracts.Request("SORTOI", plan), order);
                 contracts.Request("SORTSU", plan);
                 contracts.Request("SORTOX", plan);
+                contracts.Request("COMTFM", plan);
             }
             var releaseInput = new XElement("Posting", new XElement("OriginalSalesOrder", order), new XElement("NewOrderStatus", "8"));
             var releaseRequest = PostingContracts.Parse(contracts.Request("SORTOS", releaseInput));
@@ -97,6 +100,7 @@ public class ProcedurePostingService(OrthoxactContext db, IProcedureSysproGatewa
                 await db.SaveChangesAsync();
                 // Read back actual SYSPRO relationships before attempting component maintenance.
                 await EntityRead(plan, procedure, false);
+                await ContractCall("COMTFM", "COMTFM", plan, procedure);
                 var completion = PostingContracts.Parse(contracts.Request("SORTOX", plan));
                 if (completion.Elements("Item").Any())
                 {
@@ -143,7 +147,10 @@ public class ProcedurePostingService(OrthoxactContext db, IProcedureSysproGatewa
                 var parameters = contracts.Parameters(contract);
                 return await Call(attempt, procedure, bo, parameters, request,
                     () => gateway.Post(session, bo, parameters, request),
-                    output => contracts.CheckSuccess(contract, output));
+                    output => {
+                        if (contract == "COMTFM") CustomFormMapping.VerifyReturnedKey(PostingContracts.Parse(request), output);
+                        contracts.CheckSuccess(contract, output);
+                    });
             }
         }
         catch (Exception ex)
